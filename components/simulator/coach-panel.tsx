@@ -12,6 +12,8 @@ import {
   Play,
   ChevronDown,
   BookOpen,
+  Mic,
+  Square,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -19,6 +21,20 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EquationRenderer } from "./equation-renderer"
 import type { RobotParams, CoachResponse } from "@/lib/types"
 import { Slider } from "@/components/ui/slider"
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext
+    OfflineAudioContext?: typeof AudioContext
+    webkitOfflineAudioContext?: typeof AudioContext
+  }
+}
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext
+  }
+}
 
 interface CoachPanelProps {
   params: RobotParams
@@ -54,6 +70,15 @@ type SectionKey =
   | (typeof EXPLANATION_SECTION_KEYS)[number]
   | (typeof HINT_SECTION_KEYS)[number]
 
+type VoiceTarget = "coach_panel" | "progressive_hint"
+
+interface VoiceQueryState {
+  loading: boolean
+  transcript?: string
+  answer?: string
+  error?: string | null
+}
+
 export function CoachPanel({ params, levelId }: CoachPanelProps) {
   const [response, setResponse] = useState<CoachResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -68,6 +93,45 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
 
   const [sectionVoices, setSectionVoices] = useState<Record<string, SectionVoiceState>>({})
   const sectionAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({})
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null)
+  const processorNodeRef = useRef<ScriptProcessorNode | null>(null)
+  const pcmChunksRef = useRef<Float32Array[]>([])
+  const pcmLengthRef = useRef(0)
+  const recordingSampleRateRef = useRef(16000)
+  const cancelUploadRef = useRef(false)
+  const voiceRecordingStartedAt = useRef<number | null>(null)
+
+  const [voiceRecordingTarget, setVoiceRecordingTarget] = useState<VoiceTarget | null>(null)
+  const [voiceQueryState, setVoiceQueryState] = useState<Record<VoiceTarget, VoiceQueryState>>({
+    coach_panel: { loading: false, error: null },
+    progressive_hint: { loading: false, error: null },
+  })
+
+  const cleanupAudioGraph = useCallback(() => {
+    if (processorNodeRef.current) {
+      processorNodeRef.current.disconnect()
+      processorNodeRef.current.onaudioprocess = null
+      processorNodeRef.current = null
+    }
+
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.disconnect()
+      sourceNodeRef.current = null
+    }
+
+    if (audioContextRef.current) {
+      const ctx = audioContextRef.current
+      audioContextRef.current = null
+      void ctx.close().catch(() => undefined)
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+      mediaStreamRef.current = null
+    }
+  }, [])
 
   const clearSectionVoices = useCallback((keys?: string[]) => {
     setSectionVoices((prev) => {
@@ -95,8 +159,10 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
   useEffect(() => {
     return () => {
       clearSectionVoices()
+      cancelUploadRef.current = true
+      cleanupAudioGraph()
     }
-  }, [clearSectionVoices])
+  }, [clearSectionVoices, cleanupAudioGraph])
 
   useEffect(() => {
     if (levelId === undefined) {
@@ -242,6 +308,219 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
     })
   }, [narrationVolume])
 
+  const uploadVoiceBlob = useCallback(
+    async (blob: Blob, target: VoiceTarget) => {
+      setVoiceQueryState((prev) => ({
+        ...prev,
+        [target]: { ...prev[target], loading: true, error: null },
+      }))
+
+      try {
+        const form = new FormData()
+        const extension = blob.type.includes("wav") ? "wav" : "webm"
+        form.append("audio", blob, `voice-input.${extension}`)
+        form.append("context", target)
+        const payload: Record<string, unknown> = {}
+        if (typeof levelId === "number") {
+          payload.levelId = levelId
+        }
+        if (target === "coach_panel") {
+          payload.params = params
+        }
+        form.append("contextPayload", JSON.stringify(payload))
+
+        const res = await fetch("/api/ai/voice-query", {
+          method: "POST",
+          body: form,
+        })
+        const data = (await res.json()) as {
+          ok: boolean
+          transcript?: string
+          answer?: string
+          error?: string
+        }
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || "Voice request failed.")
+        }
+
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            loading: false,
+            error: null,
+            transcript: data.transcript,
+            answer: data.answer,
+          },
+        }))
+      } catch (error) {
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            ...prev[target],
+            loading: false,
+            error: error instanceof Error ? error.message : "Voice request failed.",
+          },
+        }))
+      }
+    },
+    [levelId, params]
+  )
+
+  const stopVoiceRecording = useCallback(
+    (cancelUpload = false) => {
+      cancelUploadRef.current = cancelUpload
+      const target = voiceRecordingTarget
+
+      cleanupAudioGraph()
+      setVoiceRecordingTarget(null)
+
+      const elapsedMs =
+        voiceRecordingStartedAt.current !== null ? performance.now() - voiceRecordingStartedAt.current : null
+      voiceRecordingStartedAt.current = null
+
+      if (!target) {
+        pcmChunksRef.current = []
+        pcmLengthRef.current = 0
+        cancelUploadRef.current = false
+        return
+      }
+
+      if (cancelUploadRef.current) {
+        cancelUploadRef.current = false
+        pcmChunksRef.current = []
+        pcmLengthRef.current = 0
+        return
+      }
+
+      if (elapsedMs !== null && elapsedMs < 600) {
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            ...prev[target],
+            loading: false,
+            error: "Recording too short. Hold the button and speak for at least a second.",
+          },
+        }))
+        pcmChunksRef.current = []
+        pcmLengthRef.current = 0
+        return
+      }
+
+      if (pcmLengthRef.current === 0) {
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: { ...prev[target], loading: false, error: "No audio captured." },
+        }))
+        return
+      }
+
+      const merged = mergePcmChunks(pcmChunksRef.current, pcmLengthRef.current)
+      pcmChunksRef.current = []
+      pcmLengthRef.current = 0
+
+      const normalized = normalizePcmSamples(merged)
+      const wavBuffer = encodeWavFromFloat32(normalized, recordingSampleRateRef.current || 16000)
+      const wavBlob = new Blob([wavBuffer], { type: "audio/wav" })
+      void uploadVoiceBlob(wavBlob, target)
+    },
+    [cleanupAudioGraph, uploadVoiceBlob, voiceRecordingTarget]
+  )
+
+  const startVoiceRecording = useCallback(
+    async (target: VoiceTarget) => {
+      if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            ...prev[target],
+            error: "Microphone not supported in this browser.",
+          },
+        }))
+        return
+      }
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (!AudioCtx) {
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            ...prev[target],
+            error: "Web Audio API is unavailable in this browser.",
+          },
+        }))
+        return
+      }
+
+      try {
+        if (voiceRecordingTarget) {
+          stopVoiceRecording(true)
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            noiseSuppression: true,
+            echoCancellation: true,
+            autoGainControl: true,
+          },
+        })
+        mediaStreamRef.current = stream
+
+        const audioCtx = new AudioCtx({ sampleRate: 16000 })
+        audioContextRef.current = audioCtx
+        recordingSampleRateRef.current = audioCtx.sampleRate
+
+        const sourceNode = audioCtx.createMediaStreamSource(stream)
+        sourceNodeRef.current = sourceNode
+
+        const processor = audioCtx.createScriptProcessor(4096, 1, 1)
+        processorNodeRef.current = processor
+        pcmChunksRef.current = []
+        pcmLengthRef.current = 0
+        cancelUploadRef.current = false
+
+        processor.onaudioprocess = (event) => {
+          const input = event.inputBuffer.getChannelData(0)
+          pcmChunksRef.current.push(new Float32Array(input))
+          pcmLengthRef.current += input.length
+        }
+
+        sourceNode.connect(processor)
+        processor.connect(audioCtx.destination)
+
+        setVoiceRecordingTarget(target)
+        voiceRecordingStartedAt.current = performance.now()
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: { loading: false, error: null, transcript: undefined, answer: undefined },
+        }))
+      } catch (error) {
+        cleanupAudioGraph()
+        setVoiceRecordingTarget(null)
+        setVoiceQueryState((prev) => ({
+          ...prev,
+          [target]: {
+            ...prev[target],
+            error: error instanceof Error ? error.message : "Could not access microphone.",
+          },
+        }))
+      }
+    },
+    [cleanupAudioGraph, stopVoiceRecording, voiceRecordingTarget]
+  )
+
+  const handleVoiceButton = useCallback(
+    (target: VoiceTarget) => {
+      if (voiceRecordingTarget === target) {
+        stopVoiceRecording()
+      } else {
+        void startVoiceRecording(target)
+      }
+    },
+    [startVoiceRecording, stopVoiceRecording, voiceRecordingTarget]
+  )
+
   const handleHint = useCallback(async () => {
     if (!levelId) {
       setHintError("Select a level to unlock progressive hints.")
@@ -310,6 +589,26 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
           {hintLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Lightbulb className="size-3.5" />}
           {hintLoading ? "Coaching..." : "Get Hint"}
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2 font-mono text-xs"
+          onClick={() => handleVoiceButton("progressive_hint")}
+          disabled={!levelId}
+        >
+          {voiceRecordingTarget === "progressive_hint" ? (
+            <>
+              <Square className="size-3.5" />
+              Stop Voice
+            </>
+          ) : (
+            <>
+              <Mic className="size-3.5" />
+              Voice Hint
+            </>
+          )}
+        </Button>
       </div>
       {hintError && (
         <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
@@ -346,6 +645,33 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
           )}
         </div>
       )}
+      {(voiceQueryState.progressive_hint.loading ||
+        voiceQueryState.progressive_hint.answer ||
+        voiceQueryState.progressive_hint.error ||
+        voiceRecordingTarget === "progressive_hint") && (
+          <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-primary">Voice Hint</span>
+              {voiceRecordingTarget === "progressive_hint" && (
+                <span className="text-[10px] text-primary">Recording...</span>
+              )}
+              {voiceQueryState.progressive_hint.loading && <Loader2 className="size-3 animate-spin text-primary" />}
+            </div>
+            {voiceQueryState.progressive_hint.error && (
+              <p className="text-destructive">{voiceQueryState.progressive_hint.error}</p>
+            )}
+            {voiceQueryState.progressive_hint.transcript && (
+              <p className="text-muted-foreground">
+                <span className="font-semibold">You:</span> {voiceQueryState.progressive_hint.transcript}
+              </p>
+            )}
+            {voiceQueryState.progressive_hint.answer && (
+              <div className="mt-1">
+                <EquationRenderer content={voiceQueryState.progressive_hint.answer} showFrame={false} size="sm" />
+              </div>
+            )}
+          </div>
+        )}
     </div>
   )
 
@@ -391,10 +717,58 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
         />
       </div>
 
-      <Button onClick={handleExplain} disabled={loading} className="glow-sm gap-2 font-display font-semibold">
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-        {loading ? "Analyzing..." : "Explain Configuration"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handleExplain} disabled={loading} className="glow-sm gap-2 font-display font-semibold">
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          {loading ? "Analyzing..." : "Explain Configuration"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-2 font-mono text-xs"
+          onClick={() => handleVoiceButton("coach_panel")}
+        >
+          {voiceRecordingTarget === "coach_panel" ? (
+            <>
+              <Square className="size-3.5" />
+              Stop Voice
+            </>
+          ) : (
+            <>
+              <Mic className="size-3.5" />
+              Voice Question
+            </>
+          )}
+        </Button>
+      </div>
+
+      {(voiceQueryState.coach_panel.loading ||
+        voiceQueryState.coach_panel.answer ||
+        voiceQueryState.coach_panel.error ||
+        voiceRecordingTarget === "coach_panel") && (
+          <div className="rounded-lg border border-border/60 bg-card/60 p-3 text-xs">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                Voice Coaching
+              </span>
+              {voiceRecordingTarget === "coach_panel" && (
+                <span className="text-[10px] text-primary">Recording...</span>
+              )}
+              {voiceQueryState.coach_panel.loading && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
+            </div>
+            {voiceQueryState.coach_panel.error && (
+              <p className="text-destructive">{voiceQueryState.coach_panel.error}</p>
+            )}
+            {voiceQueryState.coach_panel.transcript && (
+              <p className="mb-1 text-muted-foreground">
+                <span className="font-semibold">You:</span> {voiceQueryState.coach_panel.transcript}
+              </p>
+            )}
+            {voiceQueryState.coach_panel.answer && (
+              <EquationRenderer content={voiceQueryState.coach_panel.answer} showFrame={false} size="sm" />
+            )}
+          </div>
+        )}
 
       <Separator className="bg-border/50" />
 
@@ -535,4 +909,83 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
       {renderSectionAudioElements()}
     </div>
   )
+}
+
+function mergePcmChunks(chunks: Float32Array[], totalLength: number): Float32Array {
+  if (chunks.length === 1 && chunks[0].length === totalLength) {
+    return chunks[0]
+  }
+
+  const merged = new Float32Array(totalLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    merged.set(chunk, offset)
+    offset += chunk.length
+  }
+  return merged
+}
+
+function normalizePcmSamples(samples: Float32Array): Float32Array {
+  let peak = 0
+  for (let i = 0; i < samples.length; i += 1) {
+    const abs = Math.abs(samples[i])
+    if (abs > peak) peak = abs
+  }
+
+  if (peak === 0 || peak >= 0.95) {
+    return samples
+  }
+
+  const gain = 0.95 / peak
+  for (let i = 0; i < samples.length; i += 1) {
+    samples[i] = Math.max(-1, Math.min(1, samples[i] * gain))
+  }
+  return samples
+}
+
+function encodeWavFromFloat32(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const bytesPerSample = 2
+  const dataLength = samples.length * bytesPerSample
+  const buffer = new ArrayBuffer(44 + dataLength)
+  const view = new DataView(buffer)
+
+  const writeString = (value: string) => {
+    for (let i = 0; i < value.length; i += 1) {
+      view.setUint8(offset + i, value.charCodeAt(i))
+    }
+    offset += value.length
+  }
+
+  const writeUint32 = (value: number) => {
+    view.setUint32(offset, value, true)
+    offset += 4
+  }
+
+  const writeUint16 = (value: number) => {
+    view.setUint16(offset, value, true)
+    offset += 2
+  }
+
+  let offset = 0
+  writeString("RIFF")
+  writeUint32(36 + dataLength)
+  writeString("WAVE")
+  writeString("fmt ")
+  writeUint32(16)
+  writeUint16(1)
+  writeUint16(1)
+  writeUint32(Math.round(sampleRate))
+  writeUint32(Math.round(sampleRate) * bytesPerSample)
+  writeUint16(bytesPerSample)
+  writeUint16(16)
+  writeString("data")
+  writeUint32(dataLength)
+
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[i]))
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+    offset += bytesPerSample
+  }
+
+  return buffer
 }
