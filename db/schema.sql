@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   auto_save_seconds INTEGER NOT NULL DEFAULT 0,        -- >0 only when policy uses interval
   save_chat_history INTEGER NOT NULL DEFAULT 1,        -- 0/1
   save_simulator_state INTEGER NOT NULL DEFAULT 1,     -- 0/1
+  preferred_theme TEXT NOT NULL DEFAULT 'system',      -- light | dark | system
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

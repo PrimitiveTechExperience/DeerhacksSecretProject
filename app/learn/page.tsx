@@ -79,11 +79,20 @@ export default function LearnPage() {
   }, [])
 
   useEffect(() => {
-    const progress = getLearningProgress()
-    setCompleted(progress.completedLevels)
-    setCompletedTheory(progress.completedTheoryLevels)
+    let mounted = true
+    void (async () => {
+      const progress = await getLearningProgress()
+      if (!mounted) return
+      setCompleted(progress.completedLevels)
+      setCompletedTheory(progress.completedTheoryLevels)
+    })()
+
     const hidden = window.localStorage.getItem(THEORY_WARNING_KEY) === "1"
     setShowTheoryWarning(!hidden)
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -261,9 +270,9 @@ export default function LearnPage() {
     }
   }
 
-  const completeTheoryLevel = () => {
+  const completeTheoryLevel = async () => {
     if (!selectedTheory) return
-    const progress = markTheoryLevelCompleted(selectedTheory.id)
+    const progress = await markTheoryLevelCompleted(selectedTheory.id)
     setCompletedTheory(progress.completedTheoryLevels)
   }
 
@@ -595,7 +604,7 @@ export default function LearnPage() {
                     </Button>
                   )}
                 </div>
-                <Button onClick={completeTheoryLevel} className="glow-sm btn-smooth">
+                <Button onClick={() => void completeTheoryLevel()} className="glow-sm btn-smooth">
                   Mark Complete
                 </Button>
               </DialogFooter>
