@@ -9,8 +9,9 @@ import { UNITY_BUILD_CONFIG } from "@/lib/unity-webgl"
 
 interface UnityPlaceholderProps {
   params: RobotParams
-  segmentCount?: 1 | 2
+  segmentCount?: number
   segmentColors?: { s1: string; s2: string }
+  extraSegments?: Array<{ kappa: number; phiDeg: number; length: number; color: string }>
   target?: Point3
   obstacles?: Obstacle[]
 }
@@ -30,6 +31,7 @@ export function UnityPlaceholder({
   params,
   segmentCount = 1,
   segmentColors = { s1: "#ff6d4d", s2: "#4dd8ff" },
+  extraSegments = [],
   target,
   obstacles,
 }: UnityPlaceholderProps) {
@@ -50,6 +52,7 @@ export function UnityPlaceholder({
     const segments = [
       { kappa: params.kappa1, phiDeg: params.phi1, length: params.L1, color: segmentColors.s1 },
       { kappa: params.kappa2, phiDeg: params.phi2, length: params.L2, color: segmentColors.s2 },
+      ...extraSegments,
     ]
 
     return JSON.stringify({
@@ -67,7 +70,7 @@ export function UnityPlaceholder({
 
   useEffect(() => {
     sendToUnity("UpdateParams", buildSegmentsPayload())
-  }, [isReady, params, segmentColors, sendMessage])
+  }, [isReady, params, segmentColors, extraSegments, segmentCount, sendMessage])
 
   useEffect(() => {
     if (!isReady) return

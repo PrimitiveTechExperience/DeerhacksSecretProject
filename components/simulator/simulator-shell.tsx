@@ -20,11 +20,21 @@ const DEFAULT_SEGMENT_COLORS = {
   s1: "#ff6d4d",
   s2: "#4dd8ff",
 }
+const MAX_EXPLORER_SEGMENTS = 6
+
+type ExtraSegment = {
+  kappa: number
+  phiDeg: number
+  length: number
+  color: string
+}
 
 export function SimulatorShell() {
   const searchParams = useSearchParams()
   const [params, setParams] = useState<RobotParams>(DEFAULT_PARAMS)
   const [segmentColors, setSegmentColors] = useState(DEFAULT_SEGMENT_COLORS)
+  const [explorerSegmentCount, setExplorerSegmentCount] = useState(1)
+  const [extraSegments, setExtraSegments] = useState<ExtraSegment[]>([])
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
   const [checkMessage, setCheckMessage] = useState<string>("")
   const [checkPassed, setCheckPassed] = useState(false)
@@ -49,13 +59,49 @@ export function SimulatorShell() {
     if (activeLevel) {
       setParams(activeLevel.initialParams)
       setSegmentColors(DEFAULT_SEGMENT_COLORS)
+      setExplorerSegmentCount(1)
+      setExtraSegments([])
       setCheckMessage("")
       setCheckPassed(false)
     } else {
       setParams(DEFAULT_PARAMS)
       setSegmentColors(DEFAULT_SEGMENT_COLORS)
+      setExplorerSegmentCount(1)
+      setExtraSegments([])
     }
   }, [activeLevel])
+
+  useEffect(() => {
+    if (activeLevel) return
+    const targetExtraCount = Math.max(0, explorerSegmentCount - 2)
+    setExtraSegments((prev) => {
+      if (prev.length === targetExtraCount) return prev
+      if (prev.length > targetExtraCount) return prev.slice(0, targetExtraCount)
+
+      const next = [...prev]
+      while (next.length < targetExtraCount) {
+        next.push({
+          kappa: 0,
+          phiDeg: 0,
+          length: 0.55,
+          color: "#ffb347",
+        })
+      }
+      return next
+    })
+  }, [activeLevel, explorerSegmentCount])
+
+  const effectiveSegmentCount = activeLevel ? 2 : explorerSegmentCount
+
+  const addExplorerSegment = () => {
+    if (activeLevel) return
+    setExplorerSegmentCount((current) => Math.min(MAX_EXPLORER_SEGMENTS, current + 1))
+  }
+
+  const removeExplorerSegment = () => {
+    if (activeLevel) return
+    setExplorerSegmentCount((current) => Math.max(1, current - 1))
+  }
 
   const handleCheck = async () => {
     if (!activeLevel) return
@@ -157,11 +203,40 @@ export function SimulatorShell() {
         <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">
           <ControlPanel
             params={params}
-            segmentCount={activeLevel ? 2 : 1}
+            segmentCount={effectiveSegmentCount}
             segmentColors={segmentColors}
             onParamsChange={setParams}
             onSegmentColorChange={(segment, color) =>
               setSegmentColors((prev) => ({ ...prev, [segment]: color }))
+            }
+            extraSegments={extraSegments}
+            maxSegments={MAX_EXPLORER_SEGMENTS}
+            isLocked={Boolean(activeLevel)}
+            onAddSegment={addExplorerSegment}
+            onRemoveSegment={removeExplorerSegment}
+            onExtraSegmentChange={(index, key, value) =>
+              setExtraSegments((prev) => {
+                const next = [...prev]
+                const segment = next[index]
+                if (!segment) return prev
+                if (key === "color" && typeof value === "string") {
+                  next[index] = { ...segment, color: value }
+                  return next
+                }
+                if (key === "kappa" && typeof value === "number") {
+                  next[index] = { ...segment, kappa: value }
+                  return next
+                }
+                if (key === "phiDeg" && typeof value === "number") {
+                  next[index] = { ...segment, phiDeg: value }
+                  return next
+                }
+                if (key === "length" && typeof value === "number") {
+                  next[index] = { ...segment, length: value }
+                  return next
+                }
+                return next
+              })
             }
           />
         </aside>
@@ -169,8 +244,9 @@ export function SimulatorShell() {
         <div className="min-h-[300px] flex-1">
           <UnityPlaceholder
             params={params}
-            segmentCount={activeLevel ? 2 : 1}
+            segmentCount={effectiveSegmentCount}
             segmentColors={segmentColors}
+            extraSegments={extraSegments}
             target={activeLevel?.target}
             obstacles={activeLevel?.obstacles}
           />

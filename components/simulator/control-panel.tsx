@@ -24,10 +24,16 @@ const presetIcons: Record<string, React.ElementType> = {
 
 interface ControlPanelProps {
   params: RobotParams
-  segmentCount?: 1 | 2
+  segmentCount?: number
   segmentColors: { s1: string; s2: string }
+  extraSegments: Array<{ kappa: number; phiDeg: number; length: number; color: string }>
+  maxSegments: number
+  isLocked: boolean
   onParamsChange: (params: RobotParams) => void
   onSegmentColorChange: (segment: "s1" | "s2", color: string) => void
+  onAddSegment: () => void
+  onRemoveSegment: () => void
+  onExtraSegmentChange: (index: number, key: "kappa" | "phiDeg" | "length" | "color", value: number | string) => void
 }
 
 function ParamSlider({
@@ -118,12 +124,64 @@ function SegmentColorPicker({
   )
 }
 
+function ExtraSegmentColorPicker({
+  segmentIndex,
+  color,
+  onConfirm,
+}: {
+  segmentIndex: number
+  color: string
+  onConfirm: (index: number, color: string) => void
+}) {
+  const [draftColor, setDraftColor] = useState(color)
+
+  useEffect(() => {
+    setDraftColor(color)
+  }, [color])
+
+  return (
+    <details className="rounded-md border border-border/40 bg-secondary/20">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs">
+        <span className="font-mono tracking-wider text-muted-foreground uppercase">Change Color</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-4 rounded border border-border/60" style={{ backgroundColor: color }} />
+          <span className="font-mono text-[11px] text-foreground">{color.toUpperCase()}</span>
+        </span>
+      </summary>
+      <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
+        <input
+          type="color"
+          value={draftColor}
+          onChange={(e) => setDraftColor(e.target.value)}
+          className="h-8 w-10 cursor-pointer rounded border border-border/60 bg-transparent p-0"
+          aria-label={`Pick segment ${segmentIndex + 3} color`}
+        />
+        <div className="font-mono text-[11px] text-muted-foreground">{draftColor.toUpperCase()}</div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="ml-auto h-8 border-primary/40 text-xs hover:border-primary hover:text-primary"
+          onClick={() => onConfirm(segmentIndex, draftColor)}
+        >
+          Confirm
+        </Button>
+      </div>
+    </details>
+  )
+}
+
 export function ControlPanel({
   params,
   segmentCount = 1,
   segmentColors,
+  extraSegments,
+  maxSegments,
+  isLocked,
   onParamsChange,
   onSegmentColorChange,
+  onAddSegment,
+  onRemoveSegment,
+  onExtraSegmentChange,
 }: ControlPanelProps) {
   const updateParam = (key: keyof RobotParams, value: number) => {
     onParamsChange({ ...params, [key]: value })
@@ -135,9 +193,34 @@ export function ControlPanel({
         <h2 className="font-display text-sm font-bold tracking-wide text-foreground">
           Parameters
         </h2>
-        <p className="mt-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-          {segmentCount}-segment continuum robot
-        </p>
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+            {segmentCount}-segment continuum robot
+          </p>
+          {!isLocked && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 font-mono text-[10px]"
+                onClick={onRemoveSegment}
+                disabled={segmentCount <= 1}
+              >
+                - Remove
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2 font-mono text-[10px]"
+                onClick={onAddSegment}
+                disabled={segmentCount >= maxSegments}
+              >
+                + Add Segment
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Segment 1 */}
@@ -177,8 +260,6 @@ export function ControlPanel({
         />
         <SegmentColorPicker segmentKey="s1" color={segmentColors.s1} onConfirm={onSegmentColorChange} />
       </div>
-
-      <Separator className="bg-border/50" />
 
       {segmentCount > 1 && (
         <>
@@ -223,6 +304,52 @@ export function ControlPanel({
           </div>
         </>
       )}
+
+      {extraSegments.map((segment, index) => (
+        <div key={`s-extra-${index}`} className="flex flex-col gap-3">
+          <Separator className="bg-border/50" />
+          <div className="inline-flex items-center gap-2">
+            <span className="flex size-5 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-bold text-primary">
+              S{index + 3}
+            </span>
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+              Segment {index + 3}
+            </span>
+          </div>
+          <ParamSlider
+            label={SLIDER_CONFIG.kappa.label}
+            value={segment.kappa}
+            min={SLIDER_CONFIG.kappa.min}
+            max={SLIDER_CONFIG.kappa.max}
+            step={SLIDER_CONFIG.kappa.step}
+            unit={SLIDER_CONFIG.kappa.unit}
+            onChange={(v) => onExtraSegmentChange(index, "kappa", v)}
+          />
+          <ParamSlider
+            label={SLIDER_CONFIG.phi.label}
+            value={segment.phiDeg}
+            min={SLIDER_CONFIG.phi.min}
+            max={SLIDER_CONFIG.phi.max}
+            step={SLIDER_CONFIG.phi.step}
+            unit={SLIDER_CONFIG.phi.unit}
+            onChange={(v) => onExtraSegmentChange(index, "phiDeg", v)}
+          />
+          <ParamSlider
+            label={SLIDER_CONFIG.L.label}
+            value={segment.length}
+            min={SLIDER_CONFIG.L.min}
+            max={SLIDER_CONFIG.L.max}
+            step={SLIDER_CONFIG.L.step}
+            unit={SLIDER_CONFIG.L.unit}
+            onChange={(v) => onExtraSegmentChange(index, "length", v)}
+          />
+          <ExtraSegmentColorPicker
+            segmentIndex={index}
+            color={segment.color}
+            onConfirm={(segmentIndex, color) => onExtraSegmentChange(segmentIndex, "color", color)}
+          />
+        </div>
+      ))}
 
       <Separator className="bg-border/50" />
 
