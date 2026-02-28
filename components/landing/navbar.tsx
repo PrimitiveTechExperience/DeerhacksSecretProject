@@ -58,6 +58,14 @@ export function Navbar() {
               size="sm"
               className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
             >
+              <Link href="/intro">Intro</Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+            >
               <Link href="/learn">Learning Map</Link>
             </Button>
             <ThemeToggle />
