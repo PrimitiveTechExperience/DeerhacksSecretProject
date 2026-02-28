@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { AUTH_PROVIDER } from "@/lib/auth/config"
 import { writeSessionCookie } from "@/lib/auth/server-session"
 import { buildAuth0AuthorizeUrl, createAuth0State, getAuth0Env, writeAuth0StateCookie } from "@/lib/auth/auth0-server"
+import { ensureSqliteInitialized } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   if (AUTH_PROVIDER !== "auth0") {
@@ -48,6 +49,14 @@ export async function POST(request: NextRequest) {
       provider: "local" as const,
     },
   }
+
+  const repo = await ensureSqliteInitialized()
+  await repo.upsertUser({
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    authProvider: "local",
+  })
 
   const response = NextResponse.json(session)
   response.cookies.set(writeSessionCookie(session))
