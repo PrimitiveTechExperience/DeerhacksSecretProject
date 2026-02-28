@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { authClient } from "@/lib/auth/client"
 import type { AuthSession, AuthUser } from "@/lib/auth/types"
+import { clearLearningProgressCache } from "@/lib/learning-progress"
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true)
         try {
           await authClient.logout()
+          clearLearningProgressCache()
           setSession({ user: null })
         } finally {
           setLoading(false)

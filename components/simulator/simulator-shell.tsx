@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AuthButtons } from "@/components/auth/auth-buttons"
+import { useAuth } from "@/components/auth/auth-provider"
 import { ControlPanel } from "@/components/simulator/control-panel"
 import { UnityPlaceholder } from "@/components/simulator/unity-placeholder"
 import { CoachPanel } from "@/components/simulator/coach-panel"
@@ -28,12 +29,21 @@ export function SimulatorShell() {
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
   const [checkMessage, setCheckMessage] = useState<string>("")
   const [checkPassed, setCheckPassed] = useState(false)
+  const { user } = useAuth()
 
   const levelId = Number(searchParams.get("level"))
   const activeLevel = useMemo(() => (Number.isFinite(levelId) ? getLevelById(levelId) : undefined), [levelId])
 
   useEffect(() => {
     let mounted = true
+    setCompletedLevels([])
+
+    if (!user) {
+      return () => {
+        mounted = false
+      }
+    }
+
     void (async () => {
       const progress = await getLearningProgress()
       if (mounted) {
@@ -43,7 +53,7 @@ export function SimulatorShell() {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     if (activeLevel) {
