@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { hasElevenLabsApiKey, synthesizeSpeechWithElevenLabs } from "@/lib/ai/elevenlabs"
 
 export async function POST(request: Request) {
   try {
@@ -11,8 +12,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY
-    if (!apiKey) {
+    if (!hasElevenLabsApiKey()) {
       return NextResponse.json(
         { error: "ElevenLabs API key not configured. Set ELEVENLABS_API_KEY in your environment variables." },
         { status: 503 }
@@ -22,35 +22,13 @@ export async function POST(request: Request) {
     // Using "Rachel" voice - a clear, natural-sounding voice
     const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"
 
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "xi-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_monolingual_v1",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
-      }
-    )
-
-    if (!res.ok) {
-      const error = await res.text()
-      console.error("ElevenLabs API error:", error)
+    const audioBuffer = await synthesizeSpeechWithElevenLabs({ text, voiceId })
+    if (!audioBuffer) {
       return NextResponse.json(
-        { error: "Failed to generate speech" },
-        { status: 502 }
+        { error: "ElevenLabs API key not configured." },
+        { status: 503 }
       )
     }
-
-    const audioBuffer = await res.arrayBuffer()
 
     return new NextResponse(audioBuffer, {
       headers: {

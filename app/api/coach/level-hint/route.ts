@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { RobotParams } from "@/lib/types"
 import { getLevelById } from "@/lib/levels"
+import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson } from "@/lib/ai/gemini"
 
 interface LevelHintResponse {
   hint: string[]
@@ -39,8 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json(fallbackHint(levelId), { status: 404 })
     }
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
+    if (!hasGeminiApiKey()) {
       return NextResponse.json(fallbackHint(levelId))
     }
 
@@ -66,33 +66,26 @@ Respond in valid JSON only:
 
 No markdown.`
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: 400,
-          },
-        }),
-      }
-    )
-
-    if (!res.ok) {
-      return NextResponse.json(fallbackHint(levelId))
+    let text: string | null = null
+    try {
+      text = await generateGeminiContent({
+        parts: [{ text: prompt }],
+        temperature: 0.4,
+        maxOutputTokens: 400,
+      })
+    } catch (error) {
+      console.error("Gemini level hint error:", error)
     }
 
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
     if (!text) {
       return NextResponse.json(fallbackHint(levelId))
     }
 
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim()
-    const parsed = JSON.parse(cleaned) as LevelHintResponse
+    const parsed = parseGeminiJson<LevelHintResponse>(text)
+    if (!parsed) {
+      console.warn("Gemini level hint response invalid JSON.")
+      return NextResponse.json(fallbackHint(levelId))
+    }
     if (!Array.isArray(parsed.hint) || typeof parsed.what_to_change !== "string") {
       return NextResponse.json(fallbackHint(levelId))
     }

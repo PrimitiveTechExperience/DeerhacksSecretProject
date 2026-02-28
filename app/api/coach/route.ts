@@ -1,17 +1,21 @@
-import { NextResponse } from "next/server"
-import type { CoachResponse } from "@/lib/types"
+import { NextResponse } from 'next/server';
+import type { CoachResponse } from '@/lib/types';
+import {
+	generateGeminiContent,
+	hasGeminiApiKey,
+	parseGeminiJson,
+} from '@/lib/ai/gemini';
 
 const DEMO_RESPONSE: CoachResponse = {
-  title: "S-Bend Configuration Detected",
-  what_changed: [
-    "Segment 1 curves with moderate curvature (\u03BA\u2081 = 2.0) in the default direction",
-    "Segment 2 mirrors with opposite bend direction (\u03C6\u2082 = 180\u00B0), creating an S-shape",
-    "Both segments maintain equal length (L = 0.5 m) for a symmetric profile",
-  ],
-  how_it_moves:
-    "The robot forms a smooth S-curve in 3D space. Segment 1 bends in the positive direction while Segment 2 reverses, creating a sinusoidal path. This configuration is excellent for navigating around obstacles or reaching targets offset from the base axis.",
-  math_deep_dive:
-`### Forward Kinematics
+	title: 'S-Bend Configuration Detected',
+	what_changed: [
+		'Segment 1 curves with moderate curvature (\u03BA\u2081 = 2.0) in the default direction',
+		'Segment 2 mirrors with opposite bend direction (\u03C6\u2082 = 180\u00B0), creating an S-shape',
+		'Both segments maintain equal length (L = 0.5 m) for a symmetric profile',
+	],
+	how_it_moves:
+		'The robot forms a smooth S-curve in 3D space. Segment 1 bends in the positive direction while Segment 2 reverses, creating a sinusoidal path. This configuration is excellent for navigating around obstacles or reaching targets offset from the base axis.',
+	math_deep_dive: `### Forward Kinematics
 
 Each segment of a constant-curvature continuum robot traces a **circular arc** in 3D space. The transformation from configuration space to task space is given by:
 
@@ -42,31 +46,30 @@ T_{tip} = T_1 \\cdot T_2
 $$
 
 The vertical reach is *reduced* compared to a straight arm because the segments partially cancel, but the **lateral reach increases** --- ideal for obstacle avoidance.`,
-  one_tip:
-    "Try increasing \u03BA\u2081 while decreasing \u03BA\u2082 to create an asymmetric S-bend. This helps the tip reach further to one side while maintaining a compact profile near the base.",
-  safety_note:
-    "High curvature values (above 8.0) on both segments simultaneously can cause self-intersection. Monitor the visual carefully at extreme settings.",
-  short_voice_script:
-    "Your robot is in an S-bend configuration. Segment one curves forward while segment two curves back in the opposite direction, creating a smooth S-shape. This is great for navigating around obstacles. Try adjusting the curvature values asymmetrically for even more reach.",
-}
+	one_tip:
+		'Try increasing \u03BA\u2081 while decreasing \u03BA\u2082 to create an asymmetric S-bend. This helps the tip reach further to one side while maintaining a compact profile near the base.',
+	safety_note:
+		'High curvature values (above 8.0) on both segments simultaneously can cause self-intersection. Monitor the visual carefully at extreme settings.',
+	short_voice_script:
+		'Your robot is in an S-bend configuration. Segment one curves forward while segment two curves back in the opposite direction, creating a smooth S-shape. This is great for navigating around obstacles. Try adjusting the curvature values asymmetrically for even more reach.',
+};
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const { kappa1, phi1, L1, kappa2, phi2, L2, voiceStyle } = body
+	try {
+		const body = await request.json();
+		const { kappa1, phi1, L1, kappa2, phi2, L2, voiceStyle } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      // Return demo response when no API key is configured
-      return NextResponse.json(DEMO_RESPONSE)
-    }
+		if (!hasGeminiApiKey()) {
+			// Return demo response when no API key is configured
+			return NextResponse.json(DEMO_RESPONSE);
+		}
 
-    const prompt = `You are an expert continuum robotics tutor. A student is controlling a 2-segment continuum robot with these parameters:
+		const prompt = `You are an expert continuum robotics tutor. A student is controlling a 2-segment continuum robot with these parameters:
 
 Segment 1: curvature=${kappa1} (1/m), bend_direction=${phi1} (degrees), length=${L1} (m)
 Segment 2: curvature=${kappa2} (1/m), bend_direction=${phi2} (degrees), length=${L2} (m)
 
-Voice style: ${voiceStyle || "friendly"}
+Voice style: ${voiceStyle || 'friendly'}
 
 Analyze this configuration and respond in JSON format with exactly these fields:
 {
@@ -79,43 +82,29 @@ Analyze this configuration and respond in JSON format with exactly these fields:
   "short_voice_script": "A 2-3 sentence narration script suitable for text-to-speech"
 }
 
-Respond ONLY with valid JSON, no markdown or code fences.`
+Respond ONLY with valid JSON, no markdown or code fences. Make sure that the JSON is properly escaped and parsable. Focus on providing clear, concise insights that are specific to the given curvature and bend directions.`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
-    )
+		const text = await generateGeminiContent({
+			parts: [{ text: prompt }],
+			temperature: 0.7,
+			maxOutputTokens: 2048,
+		});
 
-    if (!res.ok) {
-      const error = await res.text()
-      console.error("Gemini API error:", error)
-      return NextResponse.json(DEMO_RESPONSE)
-    }
+		if (!text) {
+			return NextResponse.json(DEMO_RESPONSE);
+		}
 
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+		const parsed = parseGeminiJson<CoachResponse>(text);
+		if (!parsed) {
+			console.warn(
+				'Gemini coach response was not valid JSON. Returning demo response.',
+			);
+			return NextResponse.json(DEMO_RESPONSE);
+		}
 
-    if (!text) {
-      return NextResponse.json(DEMO_RESPONSE)
-    }
-
-    // Parse the JSON from Gemini's response
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim()
-    const parsed: CoachResponse = JSON.parse(cleaned)
-
-    return NextResponse.json(parsed)
-  } catch (err) {
-    console.error("Coach API error:", err)
-    return NextResponse.json(DEMO_RESPONSE)
-  }
+		return NextResponse.json(parsed);
+	} catch (err) {
+		console.error('Coach API error:', err);
+		return NextResponse.json(DEMO_RESPONSE);
+	}
 }

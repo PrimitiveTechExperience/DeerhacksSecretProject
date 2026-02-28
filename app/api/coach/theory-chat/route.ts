@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTheoryLevelById } from "@/lib/theory-levels"
+import { generateGeminiContent, hasGeminiApiKey } from "@/lib/ai/gemini"
 
 interface ChatMessage {
   role: "user" | "assistant"
@@ -68,8 +69,7 @@ Respond with:
 3) Next concrete step
 Use markdown and LaTeX where useful.`
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
+    if (!hasGeminiApiKey()) {
       return NextResponse.json({
         reply:
           "Initial review: your approach is plausible. Check units and state each assumption explicitly. Next step: substitute values symbolically before numeric evaluation.",
@@ -77,42 +77,20 @@ Use markdown and LaTeX where useful.`
     }
 
     const textParts = fileTextChunks.map((chunk) => ({ text: chunk }))
-    const body = {
-      contents: [
-        {
-          parts: [
-            { text: contextPrompt },
-            ...textParts,
-            ...imageParts,
-          ],
-        },
-      ],
-      generationConfig: {
+    let reply: string | null = null
+    try {
+      reply = await generateGeminiContent({
+        parts: [{ text: contextPrompt }, ...textParts, ...imageParts],
         temperature: 0.5,
         maxOutputTokens: 1400,
-      },
-    }
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }
-    )
-
-    if (!res.ok) {
-      return NextResponse.json({
-        reply: "I could not analyze that upload right now. Try sending a shorter message or fewer files.",
       })
+    } catch (error) {
+      console.error("Gemini theory-chat error:", error)
     }
 
-    const data = await res.json()
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text
     if (!reply) {
       return NextResponse.json({
-        reply: "I could not parse a response. Try again with a more specific request.",
+        reply: "I could not analyze that upload right now. Try sending a shorter message or fewer files.",
       })
     }
 

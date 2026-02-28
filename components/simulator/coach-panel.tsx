@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import {
   Sparkles,
   Volume2,
@@ -29,10 +29,17 @@ export function CoachPanel({ params }: CoachPanelProps) {
   const [loading, setLoading] = useState(false)
   const [narrating, setNarrating] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [voiceStyle, setVoiceStyle] = useState<"friendly" | "technical">("friendly")
   const [error, setError] = useState<string | null>(null)
   const [mathExpanded, setMathExpanded] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+    }
+  }, [audioUrl])
 
   const handleExplain = useCallback(async () => {
     setLoading(true)
@@ -55,28 +62,64 @@ export function CoachPanel({ params }: CoachPanelProps) {
   }, [params, voiceStyle])
 
   const handleNarrate = useCallback(async () => {
-    if (!response?.short_voice_script) return
+    if (!response) {
+      setError("Explain the configuration first to generate a narration script.")
+      return
+    }
+
+    const script =
+      response.short_voice_script?.trim() ||
+      `Configuration summary: ${response.title}. ${response.how_it_moves}`
+
+    if (!script) {
+      setError("No narration script is available yet. Try explaining the configuration again.")
+      return
+    }
+
     setNarrating(true)
+    setError(null)
     try {
-      const res = await fetch("/api/narrate", {
+      const res = await fetch("/api/ai/usage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: response.short_voice_script }),
+        body: JSON.stringify({
+          usage: "voice_narration",
+          payload: { text: script },
+        }),
       })
-      if (!res.ok) throw new Error("Failed to generate narration")
-      const blob = await res.blob()
+
+      const json = await res.json()
+
+      if (!res.ok || !json?.ok || !json?.implemented) {
+        throw new Error(json?.error || "Narration usage not implemented.")
+      }
+
+      const audioBase64 = json?.data?.audio_base64
+      if (typeof audioBase64 !== "string" || !audioBase64.length) {
+        throw new Error("Narration audio was empty.")
+      }
+
+      const mimeType = typeof json?.data?.mime_type === "string" ? json.data.mime_type : "audio/mpeg"
+      const blob = base64ToBlob(audioBase64, mimeType)
       const url = URL.createObjectURL(blob)
+
       if (audioRef.current) {
         audioRef.current.src = url
-        audioRef.current.play()
+        audioRef.current.load()
+        await audioRef.current.play()
         setIsPlaying(true)
+        if (audioUrl) URL.revokeObjectURL(audioUrl)
+        setAudioUrl(url)
+      } else {
+        setAudioUrl(url)
       }
-    } catch {
+    } catch (err) {
+      console.error("Narration failed:", err)
       setError("Could not generate narration. Check your ElevenLabs API key.")
     } finally {
       setNarrating(false)
     }
-  }, [response])
+  }, [response, audioUrl])
 
   const togglePlayback = () => {
     if (!audioRef.current) return
@@ -282,7 +325,7 @@ export function CoachPanel({ params }: CoachPanelProps) {
                   )}
                   {narrating ? "Generating..." : "Narrate"}
                 </Button>
-                {audioRef.current?.src && (
+                {audioUrl && (
                   <Button
                     onClick={togglePlayback}
                     variant="outline"
@@ -312,4 +355,14 @@ export function CoachPanel({ params }: CoachPanelProps) {
       />
     </div>
   )
+}
+
+function base64ToBlob(base64: string, mimeType: string) {
+  const binary = atob(base64)
+  const len = binary.length
+  const bytes = new Uint8Array(len)
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new Blob([bytes], { type: mimeType })
 }

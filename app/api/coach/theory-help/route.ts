@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTheoryLevelById } from "@/lib/theory-levels"
+import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson } from "@/lib/ai/gemini"
 
 interface TheoryHelpResponse {
   guidance: string
@@ -42,8 +43,7 @@ export async function POST(request: Request) {
             ],
           }
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) return NextResponse.json(fallback)
+    if (!hasGeminiApiKey()) return NextResponse.json(fallback)
 
     const prompt = `You are an expert continuum robotics theory tutor.
 Mode: ${mode}
@@ -61,26 +61,20 @@ Return only valid JSON in this schema:
 }
 `
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: mode === "solution" ? 0.4 : 0.6, maxOutputTokens: 1200 },
-        }),
-      }
-    )
+    let text: string | null = null
+    try {
+      text = await generateGeminiContent({
+        parts: [{ text: prompt }],
+        temperature: mode === "solution" ? 0.4 : 0.6,
+        maxOutputTokens: 1200,
+      })
+    } catch (error) {
+      console.error("Gemini theory-help error:", error)
+    }
 
-    if (!res.ok) return NextResponse.json(fallback)
-
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
     if (!text) return NextResponse.json(fallback)
 
-    const cleaned = text.replace(/```json\n?|\n?```/g, "").trim()
-    const parsed = JSON.parse(cleaned) as TheoryHelpResponse
+    const parsed = parseGeminiJson<TheoryHelpResponse>(text)
 
     if (!parsed || !Array.isArray(parsed.steps) || typeof parsed.guidance !== "string") {
       return NextResponse.json(fallback)
