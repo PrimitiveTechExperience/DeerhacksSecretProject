@@ -175,7 +175,7 @@ export default function LearnPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground">
               <Link href="/">
@@ -186,9 +186,11 @@ export default function LearnPage() {
             <div className="h-4 w-px bg-border" />
             <span className="font-display text-sm font-semibold">Learning Map</span>
           </div>
-          <div className="flex items-center gap-2">
-            <AuthButtons />
+          <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
+            <div className="ml-2 border-l border-border/60 pl-3">
+              <AuthButtons />
+            </div>
           </div>
         </div>
       </header>

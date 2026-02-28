@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
+import { AUTH_PROVIDER } from "@/lib/auth/config"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,32 +46,44 @@ export default function LoginPage() {
       </header>
 
       <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md items-center px-4 py-8">
-        <form onSubmit={onSubmit} className="w-full space-y-4 rounded-xl border border-border/50 bg-card p-6">
-          <h1 className="font-display text-2xl font-bold">Login</h1>
-          <p className="text-sm text-muted-foreground">Use local auth now. Swap provider to Auth0 later.</p>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        {AUTH_PROVIDER === "auth0" ? (
+          <div className="w-full space-y-4 rounded-xl border border-border/50 bg-card p-6">
+            <h1 className="font-display text-2xl font-bold">Login</h1>
+            <p className="text-sm text-muted-foreground">Continue with Auth0 Universal Login.</p>
+            <Button asChild className="w-full btn-smooth">
+              <a href="/api/auth/login">Continue with Auth0</a>
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Need an account? <a href="/api/auth/signup" className="text-primary hover:underline">Sign up with Auth0</a>
+            </p>
           </div>
+        ) : (
+          <form onSubmit={onSubmit} className="w-full space-y-4 rounded-xl border border-border/50 bg-card p-6">
+            <h1 className="font-display text-2xl font-bold">Login</h1>
+            <p className="text-sm text-muted-foreground">Use local auth now. Swap provider to Auth0 later.</p>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            </div>
 
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            </div>
 
-          <Button type="submit" className="w-full btn-smooth" disabled={loading}>
-            {loading ? "Signing in..." : "Login"}
-          </Button>
+            {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
-          <p className="text-center text-xs text-muted-foreground">
-            Need an account? <Link href="/signup" className="text-primary hover:underline">Sign up</Link>
-          </p>
-        </form>
+            <Button type="submit" className="w-full btn-smooth" disabled={loading}>
+              {loading ? "Signing in..." : "Login"}
+            </Button>
+
+            <p className="text-center text-xs text-muted-foreground">
+              Need an account? <Link href="/signup" className="text-primary hover:underline">Sign up</Link>
+            </p>
+          </form>
+        )}
       </main>
     </div>
   )
 }
-
