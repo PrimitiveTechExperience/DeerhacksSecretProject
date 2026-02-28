@@ -39,22 +39,26 @@ const localAdapter: AuthAdapter = {
 
 const auth0Adapter: AuthAdapter = {
   async getSession() {
-    // TODO: replace with Auth0 SDK session fetch.
     return localAdapter.getSession()
   },
-  async login(email, password) {
-    // TODO: replace with Auth0 Universal Login redirect.
-    return localAdapter.login(email, password)
+  async login() {
+    if (typeof window !== "undefined") {
+      window.location.assign("/api/auth/login")
+    }
+    return { user: null }
   },
-  async signup(name, email, password) {
-    // TODO: replace with Auth0 signup flow.
-    return localAdapter.signup(name, email, password)
+  async signup() {
+    if (typeof window !== "undefined") {
+      window.location.assign("/api/auth/signup")
+    }
+    return { user: null }
   },
   async logout() {
-    // TODO: replace with Auth0 logout redirect.
-    return localAdapter.logout()
+    if (typeof window !== "undefined") {
+      window.location.assign("/api/auth/logout")
+      return
+    }
   },
 }
 
 export const authClient: AuthAdapter = AUTH_PROVIDER === "auth0" ? auth0Adapter : localAdapter
-
