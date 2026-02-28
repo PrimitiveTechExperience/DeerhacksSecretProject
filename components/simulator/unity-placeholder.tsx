@@ -1,8 +1,11 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import type { RobotParams } from "@/lib/types"
 import type { Obstacle } from "@/lib/levels"
 import type { Point3 } from "@/lib/kinematics"
+import { useUnityWebGL } from "@/hooks/use-unity-webgl"
+import { UNITY_BUILD_CONFIG } from "@/lib/unity-webgl"
 
 interface UnityPlaceholderProps {
   params: RobotParams
@@ -22,6 +25,21 @@ interface UnityPlaceholderProps {
  *   sendMessage("RobotController", "UpdateParams", JSON.stringify(params))
  */
 export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholderProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const { status, progress, error, isReady, sendMessage } = useUnityWebGL(canvasRef, UNITY_BUILD_CONFIG)
+
+  useEffect(() => {
+    if (!isReady) return
+    sendMessage("RobotController", "UpdateParams", JSON.stringify(params))
+  }, [isReady, params, sendMessage])
+
+  useEffect(() => {
+    if (!isReady) return
+    if (!target && !obstacles?.length) return
+    const levelContext = JSON.stringify({ target, obstacles })
+    sendMessage("RobotController", "UpdateLevelContext", levelContext)
+  }, [isReady, target, obstacles, sendMessage])
+
   return (
     <div
       id="unity-container"
@@ -33,8 +51,10 @@ export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholder
       {/* Scanline overlay */}
       <div className="scanlines absolute inset-0" />
 
-      {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center gap-6 px-8 text-center">
+      <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full" />
+
+      {/* Overlay content */}
+      <div className="relative z-10 flex flex-col items-center gap-6 px-8 text-center pointer-events-none">
         {/* Robot arm icon, large */}
         <div className="crosshair relative flex size-24 items-center justify-center rounded-2xl border border-primary/15 bg-primary/5">
           <svg
@@ -56,12 +76,24 @@ export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholder
 
         <div className="flex flex-col gap-2">
           <h3 className="font-display text-lg font-bold text-foreground">
-            Unity WebGL Simulator
+            {status === "ready" ? "Unity Simulator Connected" : "Unity WebGL Simulator"}
           </h3>
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            The 3D continuum robot visualization will render here.
-            Controls are live and ready to connect.
+            {status === "ready"
+              ? "Live robot view is running. Parameter updates are streaming to Unity."
+              : "The 3D continuum robot visualization will render here. Controls are live and ready to connect."}
           </p>
+          {status !== "ready" && (
+            <p className="font-mono text-[10px] uppercase tracking-wider text-primary">
+              {status === "loading-script" && "Loading Unity loader..."}
+              {status === "creating-instance" && `Initializing scene... ${Math.round(progress * 100)}%`}
+              {status === "error" && "Unity build not detected"}
+              {status === "idle" && "Preparing..."}
+            </p>
+          )}
+          {error && (
+            <p className="max-w-sm text-xs text-destructive">{error}</p>
+          )}
         </div>
 
         {/* Live params readout */}
@@ -81,9 +113,9 @@ export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholder
         </div>
 
         <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5">
-          <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+          <span className={`size-1.5 rounded-full ${status === "ready" ? "bg-green-500" : "animate-pulse bg-primary"}`} />
           <span className="font-mono text-[10px] font-medium tracking-wider text-primary uppercase">
-            Awaiting Unity Build
+            {status === "ready" ? "Unity Ready" : "Awaiting Unity Build"}
           </span>
         </span>
 
