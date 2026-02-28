@@ -4,40 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Warm industrial light theme - blueprint paper feel */
-  --background: oklch(0.975 0.005 85);
-  --foreground: oklch(0.15 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 260);
-  --primary: oklch(0.7 0.17 55);
-  --primary-foreground: oklch(0.13 0.03 55);
-  --secondary: oklch(0.94 0.01 260);
-  --secondary-foreground: oklch(0.25 0.02 260);
-  --muted: oklch(0.94 0.01 260);
-  --muted-foreground: oklch(0.45 0.015 260);
-  --accent: oklch(0.93 0.025 55);
-  --accent-foreground: oklch(0.2 0.03 55);
+  /* Warm industrial light theme - reduced glare, orange-forward */
+  --background: oklch(0.93 0.018 78);
+  --foreground: oklch(0.26 0.022 255);
+  --card: oklch(0.955 0.016 78);
+  --card-foreground: oklch(0.24 0.022 255);
+  --popover: oklch(0.965 0.016 78);
+  --popover-foreground: oklch(0.24 0.022 255);
+  --primary: oklch(0.69 0.165 55);
+  --primary-foreground: oklch(0.2 0.03 68);
+  --secondary: oklch(0.905 0.018 70);
+  --secondary-foreground: oklch(0.27 0.022 255);
+  --muted: oklch(0.89 0.014 72);
+  --muted-foreground: oklch(0.48 0.014 255);
+  --accent: oklch(0.88 0.038 62);
+  --accent-foreground: oklch(0.26 0.03 60);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.01 260);
-  --input: oklch(0.9 0.01 260);
-  --ring: oklch(0.7 0.17 55);
-  --chart-1: oklch(0.7 0.17 55);
-  --chart-2: oklch(0.6 0.15 270);
-  --chart-3: oklch(0.55 0.18 150);
-  --chart-4: oklch(0.7 0.15 195);
-  --chart-5: oklch(0.6 0.2 330);
+  --border: oklch(0.82 0.02 68);
+  --input: oklch(0.84 0.018 68);
+  --ring: oklch(0.69 0.165 55);
+  --chart-1: oklch(0.69 0.165 55);
+  --chart-2: oklch(0.62 0.135 250);
+  --chart-3: oklch(0.62 0.12 150);
+  --chart-4: oklch(0.67 0.13 205);
+  --chart-5: oklch(0.59 0.15 15);
   --radius: 0.625rem;
-  --sidebar: oklch(0.97 0.005 260);
-  --sidebar-foreground: oklch(0.15 0.02 260);
-  --sidebar-primary: oklch(0.7 0.17 55);
-  --sidebar-primary-foreground: oklch(0.13 0.03 55);
-  --sidebar-accent: oklch(0.93 0.025 55);
-  --sidebar-accent-foreground: oklch(0.2 0.03 55);
-  --sidebar-border: oklch(0.9 0.01 260);
-  --sidebar-ring: oklch(0.7 0.17 55);
+  --sidebar: oklch(0.945 0.016 76);
+  --sidebar-foreground: oklch(0.24 0.022 255);
+  --sidebar-primary: oklch(0.69 0.165 55);
+  --sidebar-primary-foreground: oklch(0.2 0.03 68);
+  --sidebar-accent: oklch(0.88 0.038 62);
+  --sidebar-accent-foreground: oklch(0.26 0.03 60);
+  --sidebar-border: oklch(0.82 0.02 68);
+  --sidebar-ring: oklch(0.69 0.165 55);
 }
 
 .dark {
@@ -231,7 +231,7 @@
     linear-gradient(to right, var(--primary) 1px, transparent 1px),
     linear-gradient(to bottom, var(--primary) 1px, transparent 1px);
   background-size: 60px 60px;
-  opacity: 0.04;
+  opacity: 0.025;
 }
 .dark .blueprint-grid {
   opacity: 0.06;
@@ -243,7 +243,7 @@
     linear-gradient(to right, var(--primary) 1px, transparent 1px),
     linear-gradient(to bottom, var(--primary) 1px, transparent 1px);
   background-size: 28px 28px;
-  opacity: 0.04;
+  opacity: 0.03;
 }
 .dark .grid-bg {
   opacity: 0.07;
@@ -346,13 +346,13 @@
 
 /* Glow effects */
 .glow-sm {
-  box-shadow: 0 0 12px oklch(0.7 0.17 55 / 0.15);
+  box-shadow: 0 0 10px oklch(0.69 0.165 55 / 0.12);
 }
 .dark .glow-sm {
   box-shadow: 0 0 16px oklch(0.78 0.15 60 / 0.25);
 }
 .glow-lg {
-  box-shadow: 0 0 30px oklch(0.7 0.17 55 / 0.15), 0 0 80px oklch(0.7 0.17 55 / 0.05);
+  box-shadow: 0 0 22px oklch(0.69 0.165 55 / 0.12), 0 0 56px oklch(0.69 0.165 55 / 0.04);
 }
 .dark .glow-lg {
   box-shadow: 0 0 30px oklch(0.78 0.15 60 / 0.25), 0 0 80px oklch(0.78 0.15 60 / 0.08);

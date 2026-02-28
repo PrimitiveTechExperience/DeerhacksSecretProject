@@ -184,7 +184,9 @@ export function CoachPanel({ params }: CoachPanelProps) {
                   {response.what_changed.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-foreground">
                       <CheckCircle2 className="mt-0.5 size-3 shrink-0 text-primary" />
-                      <span>{item}</span>
+                      <div className="min-w-0 flex-1">
+                        <EquationRenderer content={item} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -196,9 +198,7 @@ export function CoachPanel({ params }: CoachPanelProps) {
               <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
                 How It Moves
               </span>
-              <p className="text-xs leading-relaxed text-foreground">
-                {response.how_it_moves}
-              </p>
+              <EquationRenderer content={response.how_it_moves} />
             </div>
 
             {/* Math Deep Dive - Collapsible */}
@@ -238,18 +238,18 @@ export function CoachPanel({ params }: CoachPanelProps) {
             {/* Tip */}
             <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
               <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-primary" />
-              <p className="text-xs leading-relaxed text-foreground">
-                {response.one_tip}
-              </p>
+              <div className="min-w-0 flex-1">
+                <EquationRenderer content={response.one_tip} />
+              </div>
             </div>
 
             {/* Safety note */}
             {response.safety_note && (
               <div className="flex gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-                <p className="text-xs leading-relaxed text-foreground">
-                  {response.safety_note}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <EquationRenderer content={response.safety_note} />
+                </div>
               </div>
             )}
 

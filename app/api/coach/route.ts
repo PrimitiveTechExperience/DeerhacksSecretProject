@@ -71,11 +71,11 @@ Voice style: ${voiceStyle || "friendly"}
 Analyze this configuration and respond in JSON format with exactly these fields:
 {
   "title": "A short descriptive title of the configuration",
-  "what_changed": ["Array of 2-3 bullet points about what's notable in the current settings"],
-  "how_it_moves": "A paragraph explaining the robot's shape and motion in 3D space",
+  "what_changed": ["Array of 2-3 bullet points about what's notable in the current settings. You may use inline LaTeX like $\\kappa_1$ when useful."],
+  "how_it_moves": "A paragraph explaining the robot's shape and motion in 3D space. Markdown + inline LaTeX allowed.",
   "math_deep_dive": "A markdown string with LaTeX equations (using $...$ for inline and $$...$$ for block math) explaining the forward kinematics, curvature math, and any relevant formulas for this specific configuration. Include the homogeneous transformation matrix, radius of curvature, arc angle, and tip position analysis. Use ### headings to organize sections.",
-  "one_tip": "A practical tip for the student to try next",
-  "safety_note": "Optional safety warning if relevant, or null",
+  "one_tip": "A practical tip for the student to try next. Markdown + inline LaTeX allowed.",
+  "safety_note": "Optional safety warning if relevant, or null. Markdown + inline LaTeX allowed.",
   "short_voice_script": "A 2-3 sentence narration script suitable for text-to-speech"
 }
 
