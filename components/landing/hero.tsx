@@ -1,9 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { RobotArmSVG } from "./robot-arm-svg"
+
+const RobotArmSVG = dynamic(
+  () => import("./robot-arm-svg").then((mod) => mod.RobotArmSVG),
+  { ssr: false }
+)
 
 export function Hero() {
   return (
@@ -74,7 +79,7 @@ export function Hero() {
               size="lg"
               className="gap-2 px-8 font-display text-base font-medium"
             >
-              <a href="#features">See Features</a>
+              <Link href="/learn">Open Learning Map</Link>
             </Button>
           </div>
 

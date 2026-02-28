@@ -50,6 +50,14 @@ export function Navbar() {
           >
             <a href="#how-it-works">How It Works</a>
           </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+          >
+            <Link href="/learn">Learning Map</Link>
+          </Button>
           <ThemeToggle />
           <Button asChild size="sm" className="glow-sm font-display font-semibold">
             <Link href="/simulator">Launch Sim</Link>

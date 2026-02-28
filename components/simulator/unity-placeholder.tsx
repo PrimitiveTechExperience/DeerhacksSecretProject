@@ -1,9 +1,13 @@
 "use client"
 
 import type { RobotParams } from "@/lib/types"
+import type { Obstacle } from "@/lib/levels"
+import type { Point3 } from "@/lib/kinematics"
 
 interface UnityPlaceholderProps {
   params: RobotParams
+  target?: Point3
+  obstacles?: Obstacle[]
 }
 
 /**
@@ -17,7 +21,7 @@ interface UnityPlaceholderProps {
  * Expected Unity interface:
  *   sendMessage("RobotController", "UpdateParams", JSON.stringify(params))
  */
-export function UnityPlaceholder({ params }: UnityPlaceholderProps) {
+export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholderProps) {
   return (
     <div
       id="unity-container"
@@ -82,6 +86,24 @@ export function UnityPlaceholder({ params }: UnityPlaceholderProps) {
             Awaiting Unity Build
           </span>
         </span>
+
+        {(target || obstacles?.length) && (
+          <div className="flex flex-wrap justify-center gap-2 text-[10px]">
+            {target && (
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 font-mono text-primary">
+                TARGET: ({target.x.toFixed(2)}, {target.y.toFixed(2)}, {target.z.toFixed(2)})
+              </span>
+            )}
+            {obstacles?.map((obstacle, idx) => (
+              <span
+                key={`${obstacle.x}-${obstacle.y}-${obstacle.z}-${idx}`}
+                className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-1 font-mono text-destructive"
+              >
+                OBS {idx + 1}: r={obstacle.radius.toFixed(2)}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
