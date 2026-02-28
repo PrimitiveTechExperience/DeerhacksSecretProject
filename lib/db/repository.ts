@@ -3,6 +3,7 @@ import path from "node:path"
 import { createRequire } from "node:module"
 
 export type SavePolicy = "manual_only" | "auto_interval" | "on_level_complete" | "on_exit"
+export type ThemePreference = "light" | "dark" | "system"
 
 export interface UserSettings {
   userId: string
@@ -10,6 +11,7 @@ export interface UserSettings {
   autoSaveSeconds: number
   saveChatHistory: boolean
   saveSimulatorState: boolean
+  theme: ThemePreference
 }
 
 export interface SimulatorSnapshotRecord {
@@ -82,6 +84,13 @@ export class SqliteRepository {
     const schemaPath = path.resolve(process.cwd(), "db", "schema.sql")
     const schema = fs.readFileSync(schemaPath, "utf8")
     this.db.exec(schema)
+
+    // Backfill newly-added columns when running against an existing DB.
+    try {
+      this.db.prepare("SELECT preferred_theme FROM user_settings LIMIT 1").get()
+    } catch {
+      this.db.exec("ALTER TABLE user_settings ADD COLUMN preferred_theme TEXT NOT NULL DEFAULT 'system'")
+    }
   }
 
   async upsertUser(args: {
@@ -107,8 +116,8 @@ export class SqliteRepository {
     // Ensure settings row exists
     this.db
       .prepare(
-        `INSERT INTO user_settings (user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, updated_at)
-         VALUES (?, 'manual_only', 0, 1, 1, datetime('now'))
+        `INSERT INTO user_settings (user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, preferred_theme, updated_at)
+         VALUES (?, 'manual_only', 0, 1, 1, 'system', datetime('now'))
          ON CONFLICT(user_id) DO NOTHING`
       )
       .run(args.id)
@@ -117,7 +126,7 @@ export class SqliteRepository {
   async getUserSettings(userId: string): Promise<UserSettings | null> {
     const row = this.db
       .prepare(
-        `SELECT user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state
+        `SELECT user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, preferred_theme
          FROM user_settings WHERE user_id = ?`
       )
       .get(userId)
@@ -129,19 +138,21 @@ export class SqliteRepository {
       autoSaveSeconds: Number(row.auto_save_seconds),
       saveChatHistory: toBool(row.save_chat_history),
       saveSimulatorState: toBool(row.save_simulator_state),
+      theme: (row.preferred_theme ? String(row.preferred_theme) : "system") as ThemePreference,
     }
   }
 
   async upsertUserSettings(settings: UserSettings): Promise<void> {
     this.db
       .prepare(
-        `INSERT INTO user_settings (user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, updated_at)
-         VALUES (?, ?, ?, ?, ?, datetime('now'))
+        `INSERT INTO user_settings (user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, preferred_theme, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
          ON CONFLICT(user_id) DO UPDATE SET
            save_policy=excluded.save_policy,
            auto_save_seconds=excluded.auto_save_seconds,
            save_chat_history=excluded.save_chat_history,
            save_simulator_state=excluded.save_simulator_state,
+           preferred_theme=excluded.preferred_theme,
            updated_at=datetime('now')`
       )
       .run(
@@ -149,7 +160,8 @@ export class SqliteRepository {
         settings.savePolicy,
         settings.autoSaveSeconds,
         settings.saveChatHistory ? 1 : 0,
-        settings.saveSimulatorState ? 1 : 0
+        settings.saveSimulatorState ? 1 : 0,
+        settings.theme
       )
   }
 

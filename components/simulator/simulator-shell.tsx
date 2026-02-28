@@ -27,8 +27,16 @@ export function SimulatorShell() {
   const activeLevel = useMemo(() => (Number.isFinite(levelId) ? getLevelById(levelId) : undefined), [levelId])
 
   useEffect(() => {
-    const progress = getLearningProgress()
-    setCompletedLevels(progress.completedLevels)
+    let mounted = true
+    void (async () => {
+      const progress = await getLearningProgress()
+      if (mounted) {
+        setCompletedLevels(progress.completedLevels)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -41,11 +49,11 @@ export function SimulatorShell() {
     }
   }, [activeLevel])
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!activeLevel) return
     const result = evaluateLevel(activeLevel, params)
     if (result.passed) {
-      const progress = markLevelCompleted(activeLevel.id)
+      const progress = await markLevelCompleted(activeLevel.id)
       setCompletedLevels(progress.completedLevels)
       setCheckMessage(`Level ${activeLevel.id} complete. Next level unlocked.`)
       setCheckPassed(true)
@@ -117,7 +125,7 @@ export function SimulatorShell() {
             <p className="text-sm text-foreground">
               <span className="font-semibold">Goal:</span> {activeLevel.goal}
             </p>
-            <Button onClick={handleCheck} size="sm" className="glow-sm font-mono text-xs">
+            <Button onClick={() => void handleCheck()} size="sm" className="glow-sm font-mono text-xs">
               Check
             </Button>
             {activeLevel.target && (

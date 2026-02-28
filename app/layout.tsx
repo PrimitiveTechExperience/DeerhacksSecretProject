@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { UserThemeSync } from '@/components/theme/user-theme-sync'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import './globals.css'
 
@@ -53,7 +54,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <UserThemeSync />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>
