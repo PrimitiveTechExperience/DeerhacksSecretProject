@@ -97,15 +97,17 @@ export function SimulatorShell() {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <Button asChild variant="outline" size="sm" className="gap-2">
             <Link href="/learn">
               <Map className="size-3.5" />
               Learning Map
             </Link>
           </Button>
-          <AuthButtons />
           <ThemeToggle />
+          <div className="ml-2 border-l border-border/60 pl-3">
+            <AuthButtons />
+          </div>
         </div>
       </header>
 

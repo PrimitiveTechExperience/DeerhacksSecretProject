@@ -8,7 +8,7 @@ import { AuthButtons } from "@/components/auth/auth-buttons"
 export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+      <nav className="mx-auto flex h-14 max-w-6xl items-center px-6">
         <Link
           href="/"
           className="flex items-center gap-2.5 transition-colors hover:text-primary"
@@ -34,36 +34,40 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <a href="#features">Features</a>
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <a href="#how-it-works">How It Works</a>
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
-          >
-            <Link href="/learn">Learning Map</Link>
-          </Button>
-          <AuthButtons />
-          <ThemeToggle />
-          <Button asChild size="sm" className="glow-sm font-display font-semibold">
-            <Link href="/simulator">Launch Sim</Link>
-          </Button>
+        <div className="ml-auto flex flex-1 items-center justify-end gap-3">
+          <div className="flex items-center gap-1.5">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+            >
+              <a href="#features">Features</a>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+            >
+              <a href="#how-it-works">How It Works</a>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+            >
+              <Link href="/learn">Learning Map</Link>
+            </Button>
+            <ThemeToggle />
+            <Button asChild size="sm" className="glow-sm font-display font-semibold">
+              <Link href="/simulator">Launch Sim</Link>
+            </Button>
+          </div>
+          <div className="ml-2 border-l border-border/60 pl-3">
+            <AuthButtons />
+          </div>
         </div>
       </nav>
     </header>
