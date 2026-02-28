@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AuthButtons } from "@/components/auth/auth-buttons"
 
 export function Navbar() {
   return (
@@ -58,6 +59,7 @@ export function Navbar() {
           >
             <Link href="/learn">Learning Map</Link>
           </Button>
+          <AuthButtons />
           <ThemeToggle />
           <Button asChild size="sm" className="glow-sm font-display font-semibold">
             <Link href="/simulator">Launch Sim</Link>

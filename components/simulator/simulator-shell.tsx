@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, Map } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AuthButtons } from "@/components/auth/auth-buttons"
 import { ControlPanel } from "@/components/simulator/control-panel"
 import { UnityPlaceholder } from "@/components/simulator/unity-placeholder"
 import { CoachPanel } from "@/components/simulator/coach-panel"
@@ -103,6 +104,7 @@ export function SimulatorShell() {
               Learning Map
             </Link>
           </Button>
+          <AuthButtons />
           <ThemeToggle />
         </div>
       </header>

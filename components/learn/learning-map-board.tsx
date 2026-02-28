@@ -2,8 +2,6 @@
 
 import { useMemo, useRef, useState, type MouseEvent, type WheelEvent } from "react"
 import { Check, Lock, Minus, Plus, RotateCcw } from "lucide-react"
-import type { LevelConfig } from "@/lib/levels"
-import { isLevelUnlocked } from "@/lib/levels"
 import { Button } from "@/components/ui/button"
 
 interface MapPoint {
@@ -12,10 +10,10 @@ interface MapPoint {
 }
 
 interface LearningMapBoardProps {
-  levels: LevelConfig[]
+  levels: Array<{ id: number; mapPosition?: { x: number; y: number }; requires: number[] }>
   completed: number[]
   currentLevelId?: number
-  onOpenLevel: (level: LevelConfig) => void
+  onOpenLevel: (levelId: number) => void
 }
 
 const VIEWBOX_WIDTH = 1000
@@ -86,6 +84,8 @@ export function LearningMapBoard({ levels, completed, currentLevelId, onOpenLeve
     return levels.map((level, index) => toSvgPoint(level.mapPosition ?? fallback[index]))
   }, [levels])
   const boardPath = useMemo(() => pathThroughPoints(points), [points])
+  const isUnlocked = (level: { requires: number[] }) =>
+    level.requires.every((requiredId) => completed.includes(requiredId))
 
   const clampPan = (nextPan: { x: number; y: number }, targetZoom: number) => {
     const viewport = viewportRef.current
@@ -190,13 +190,13 @@ export function LearningMapBoard({ levels, completed, currentLevelId, onOpenLeve
               const point = points[index]
               if (!point) return null
               const done = completed.includes(level.id)
-              const unlocked = done || isLevelUnlocked(level, completed)
+              const unlocked = done || isUnlocked(level)
               const isCurrent = !done && unlocked && level.id === currentLevelId
 
               return (
                 <g
                   key={level.id}
-                  onClick={() => unlocked && onOpenLevel(level)}
+                  onClick={() => unlocked && onOpenLevel(level.id)}
                   className={unlocked ? "cursor-pointer" : "cursor-not-allowed"}
                   role="button"
                   tabIndex={unlocked ? 0 : -1}
@@ -204,7 +204,7 @@ export function LearningMapBoard({ levels, completed, currentLevelId, onOpenLeve
                     if (!unlocked) return
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault()
-                      onOpenLevel(level)
+                      onOpenLevel(level.id)
                     }
                   }}
                   aria-label={`Open level ${level.id}`}

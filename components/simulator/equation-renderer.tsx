@@ -8,12 +8,21 @@ import type { Components } from "react-markdown"
 
 interface EquationRendererProps {
   content: string
+  showFrame?: boolean
+  size?: "sm" | "md"
 }
 
-const mdComponents: Components = {
+function getMdComponents(size: "sm" | "md"): Components {
+  const textClass = size === "md" ? "text-sm leading-relaxed text-foreground/95" : "text-xs leading-relaxed text-foreground/90"
+  const listClass = size === "md" ? "flex flex-col gap-1.5 text-sm" : "flex flex-col gap-1 text-xs"
+  const codeClass = size === "md"
+    ? "rounded-sm border border-primary/15 bg-primary/5 px-1.5 py-0.5 font-mono text-xs text-primary"
+    : "rounded-sm border border-primary/15 bg-primary/5 px-1 py-0.5 font-mono text-[10px] text-primary"
+
+  return {
   // Block-level math gets the full blueprint treatment
   p: ({ children, ...props }) => (
-    <p className="text-xs leading-relaxed text-foreground/90" {...props}>
+    <p className={textClass} {...props}>
       {children}
     </p>
   ),
@@ -28,17 +37,17 @@ const mdComponents: Components = {
     </em>
   ),
   ul: ({ children, ...props }) => (
-    <ul className="flex flex-col gap-1 text-xs" {...props}>
+    <ul className={listClass} {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }) => (
-    <ol className="flex flex-col gap-1 text-xs list-decimal list-inside" {...props}>
+    <ol className={`${listClass} list-decimal list-inside`} {...props}>
       {children}
     </ol>
   ),
   li: ({ children, ...props }) => (
-    <li className="flex items-start gap-2 text-xs text-foreground/90" {...props}>
+    <li className={`${size === "md" ? "text-sm" : "text-xs"} flex items-start gap-2 text-foreground/90`} {...props}>
       <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary/50" />
       <span>{children}</span>
     </li>
@@ -48,7 +57,7 @@ const mdComponents: Components = {
     if (isInline) {
       return (
         <code
-          className="rounded-sm border border-primary/15 bg-primary/5 px-1 py-0.5 font-mono text-[10px] text-primary"
+          className={codeClass}
           {...props}
         >
           {children}
@@ -63,7 +72,7 @@ const mdComponents: Components = {
   },
   pre: ({ children, ...props }) => (
     <pre
-      className="overflow-x-auto rounded-lg border border-border/50 bg-muted/50 p-3 font-mono text-[10px]"
+      className={`overflow-x-auto rounded-lg border border-border/50 bg-muted/50 p-3 font-mono ${size === "md" ? "text-xs" : "text-[10px]"}`}
       {...props}
     >
       {children}
@@ -100,22 +109,28 @@ const mdComponents: Components = {
     </td>
   ),
 }
+}
 
-export function EquationRenderer({ content }: EquationRendererProps) {
+export function EquationRenderer({ content, showFrame = true, size = "sm" }: EquationRendererProps) {
+  const mdComponents = getMdComponents(size)
   return (
     <div className="equation-renderer relative flex flex-col gap-3">
-      {/* Top-left corner bracket */}
-      <div className="pointer-events-none absolute -left-2 -top-2 size-4">
-        <svg viewBox="0 0 16 16" className="size-full text-primary/20">
-          <path d="M 0 16 L 0 0 L 16 0" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      </div>
-      {/* Bottom-right corner bracket */}
-      <div className="pointer-events-none absolute -bottom-2 -right-2 size-4">
-        <svg viewBox="0 0 16 16" className="size-full text-primary/20">
-          <path d="M 16 0 L 16 16 L 0 16" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      </div>
+      {showFrame && (
+        <>
+          {/* Top-left corner bracket */}
+          <div className="pointer-events-none absolute -left-2 -top-2 size-4">
+            <svg viewBox="0 0 16 16" className="size-full text-primary/20">
+              <path d="M 0 16 L 0 0 L 16 0" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </div>
+          {/* Bottom-right corner bracket */}
+          <div className="pointer-events-none absolute -bottom-2 -right-2 size-4">
+            <svg viewBox="0 0 16 16" className="size-full text-primary/20">
+              <path d="M 16 0 L 16 16 L 0 16" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </div>
+        </>
+      )}
 
       <ReactMarkdown
         remarkPlugins={[remarkMath]}

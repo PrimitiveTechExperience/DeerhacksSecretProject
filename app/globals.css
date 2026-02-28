@@ -180,7 +180,7 @@
 
 /* Equation text colors */
 .equation-renderer .katex {
-  font-size: 0.85em;
+  font-size: 1em;
   color: oklch(0.25 0.03 260);
 }
 .dark .equation-renderer .katex {
@@ -356,4 +356,24 @@
 }
 .dark .glow-lg {
   box-shadow: 0 0 30px oklch(0.78 0.15 60 / 0.25), 0 0 80px oklch(0.78 0.15 60 / 0.08);
+}
+
+/* Smooth interaction polish for CTA buttons */
+.btn-smooth {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+  will-change: transform;
+}
+.btn-smooth:hover {
+  transform: translateY(-1px);
+}
+.btn-smooth:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn-smooth:disabled {
+  transform: none;
 }
