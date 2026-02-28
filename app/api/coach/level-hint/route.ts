@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     const prompt = `You are an expert continuum robotics coach.
-Give a short actionable hint for one level.
+Give a short actionable hint for one level. When you reference math symbols, parameters, or Greek letters, format them with LaTeX (e.g., "$\\kappa_1$", "$L_2$") so the frontend can render them properly.
 
 Level:
 - id: ${level.id}
@@ -64,8 +64,8 @@ ${JSON.stringify(currentParams ?? level.initialParams)}
 Respond in valid JSON only:
 {
   "hint": ["Step 1", "Step 2"],
-  "what_to_change": "one sentence on which controls to adjust",
-  "short_voice_line": "one short spoken coaching line"
+  "what_to_change": "one sentence on which controls to adjust (include LaTeX where helpful)",
+  "short_voice_line": "one short spoken coaching line (may also contain LaTeX)"
 }
 
 No markdown.`

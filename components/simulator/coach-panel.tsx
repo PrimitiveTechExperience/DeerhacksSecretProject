@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EquationRenderer } from "./equation-renderer"
 import type { RobotParams, CoachResponse } from "@/lib/types"
+import { Slider } from "@/components/ui/slider"
 
 interface CoachPanelProps {
   params: RobotParams
@@ -57,6 +58,7 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
   const [response, setResponse] = useState<CoachResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [voiceStyle, setVoiceStyle] = useState<"friendly" | "technical">("friendly")
+  const [narrationVolume, setNarrationVolume] = useState(0.8)
   const [error, setError] = useState<string | null>(null)
   const [mathExpanded, setMathExpanded] = useState(false)
 
@@ -227,11 +229,18 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
 
   const registerAudioRef = useCallback((sectionKey: SectionKey, node: HTMLAudioElement | null) => {
     if (node) {
+      node.volume = narrationVolume
       sectionAudioRefs.current[sectionKey] = node
     } else {
       delete sectionAudioRefs.current[sectionKey]
     }
-  }, [])
+  }, [narrationVolume])
+
+  useEffect(() => {
+    Object.values(sectionAudioRefs.current).forEach((audio) => {
+      if (audio) audio.volume = narrationVolume
+    })
+  }, [narrationVolume])
 
   const handleHint = useCallback(async () => {
     if (!levelId) {
@@ -364,6 +373,22 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
         >
           Technical
         </Button>
+      </div>
+
+      <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
+        <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+          <span className="uppercase tracking-wide">Voice Volume</span>
+          <span>{Math.round(narrationVolume * 100)}%</span>
+        </div>
+        <Slider
+          value={[Math.round(narrationVolume * 100)]}
+          max={100}
+          step={5}
+          onValueChange={(value) => {
+            const next = Math.min(1, Math.max(0, (value[0] ?? 0) / 100))
+            setNarrationVolume(next)
+          }}
+        />
       </div>
 
       <Button onClick={handleExplain} disabled={loading} className="glow-sm gap-2 font-display font-semibold">
