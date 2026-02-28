@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState, type MouseEvent, type WheelEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 import { Check, Lock, Minus, Plus, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -120,11 +120,27 @@ export function LearningMapBoard({ levels, completed, currentLevelId, onOpenLeve
     setPan({ x: 0, y: 0 })
   }
 
-  const onWheelZoom = (event: WheelEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    const delta = event.deltaY > 0 ? -zoomStep : zoomStep
-    updateZoom(zoom + delta)
-  }
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const onWheel = (event: globalThis.WheelEvent) => {
+      const delta = event.deltaY > 0 ? -zoomStep : zoomStep
+      const nextZoom = Math.max(minZoom, Math.min(maxZoom, Number((zoom + delta).toFixed(2))))
+      const canZoom = nextZoom !== zoom
+
+      if (canZoom) {
+        event.preventDefault()
+        event.stopPropagation()
+        updateZoom(nextZoom)
+      }
+    }
+
+    viewport.addEventListener("wheel", onWheel, { passive: false })
+    return () => {
+      viewport.removeEventListener("wheel", onWheel)
+    }
+  }, [zoom, minZoom, maxZoom, zoomStep])
 
   const onMouseDown = (event: MouseEvent<HTMLDivElement>) => {
     if (zoom <= 1) return
@@ -166,8 +182,7 @@ export function LearningMapBoard({ levels, completed, currentLevelId, onOpenLeve
 
       <div
         ref={viewportRef}
-        className={`h-[78vh] overflow-hidden rounded-xl ${zoom > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"}`}
-        onWheel={onWheelZoom}
+        className={`h-[78vh] overflow-hidden overscroll-contain rounded-xl ${zoom > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"}`}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
