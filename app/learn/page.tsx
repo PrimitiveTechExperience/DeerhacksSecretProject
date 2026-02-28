@@ -22,6 +22,7 @@ import { LearningMapBoard } from "@/components/learn/learning-map-board"
 import { EquationRenderer } from "@/components/simulator/equation-renderer"
 import { THEORY_LEVELS, type TheoryLevel, worldProgressTheory } from "@/lib/theory-levels"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import { useAuth } from "@/components/auth/auth-provider"
 
 interface HintResponse {
@@ -69,6 +70,7 @@ export default function LearnPage() {
   })
   const [hintNarrationError, setHintNarrationError] = useState<string | null>(null)
   const hintAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [hintVolume, setHintVolume] = useState(0.8)
 
   const resetHintNarration = useCallback(() => {
     if (hintAudioRef.current) {
@@ -118,6 +120,12 @@ export default function LearnPage() {
       resetHintNarration()
     }
   }, [hint, resetHintNarration])
+
+  useEffect(() => {
+    if (hintAudioRef.current) {
+      hintAudioRef.current.volume = hintVolume
+    }
+  }, [hintVolume])
 
   const world1 = worldProgress(1, completed)
   const world2 = worldProgress(2, completed)
@@ -475,15 +483,39 @@ export default function LearnPage() {
                         )}
                       </div>
                     </div>
+                    <div className="mb-3 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                        <span className="uppercase tracking-wide">Voice Volume</span>
+                        <span>{Math.round(hintVolume * 100)}%</span>
+                      </div>
+                      <Slider
+                        value={[Math.round(hintVolume * 100)]}
+                        max={100}
+                        step={5}
+                        onValueChange={(value) => {
+                          const next = Math.min(1, Math.max(0, (value[0] ?? 0) / 100))
+                          setHintVolume(next)
+                          if (hintAudioRef.current) {
+                            hintAudioRef.current.volume = next
+                          }
+                        }}
+                      />
+                    </div>
                     <ul className="space-y-1 text-sm">
                       {hint.hint.map((line, idx) => (
-                        <li key={idx}>- {line}</li>
+                        <li key={idx}>
+                          <EquationRenderer content={line} showFrame={false} size="sm" />
+                        </li>
                       ))}
                     </ul>
                     {hint.short_voice_line && (
-                      <p className="mt-2 text-xs italic text-muted-foreground">{hint.short_voice_line}</p>
+                      <div className="mt-2 text-xs italic text-muted-foreground">
+                        <EquationRenderer content={hint.short_voice_line} showFrame={false} size="sm" />
+                      </div>
                     )}
-                    <p className="mt-2 text-xs text-muted-foreground">{hint.what_to_change}</p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <EquationRenderer content={hint.what_to_change} showFrame={false} size="sm" />
+                    </div>
                     {hintNarrationError && (
                       <p className="mt-2 text-xs text-destructive">{hintNarrationError}</p>
                     )}
@@ -626,7 +658,12 @@ export default function LearnPage() {
       </Dialog>
       {hintNarration.audioSrc && (
         <audio
-          ref={hintAudioRef}
+          ref={(node) => {
+            hintAudioRef.current = node
+            if (node) {
+              node.volume = hintVolume
+            }
+          }}
           src={hintNarration.audioSrc}
           onPlay={() => handleHintAudioState(true)}
           onPause={() => handleHintAudioState(false)}
