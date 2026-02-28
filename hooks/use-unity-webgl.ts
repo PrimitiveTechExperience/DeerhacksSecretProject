@@ -68,9 +68,10 @@ export function useUnityWebGL(canvasRef: RefObject<HTMLCanvasElement | null>, co
           }
           instanceRef.current = instance
           setStatus("ready")
-        } catch {
+        } catch (err) {
           setStatus("error")
-          setError("Could not create Unity instance. Check build file names and paths.")
+          const details = err instanceof Error ? err.message : String(err)
+          setError(`Could not create Unity instance. ${details}`)
         }
       }
 
@@ -101,8 +102,12 @@ export function useUnityWebGL(canvasRef: RefObject<HTMLCanvasElement | null>, co
 
   const sendMessage = useCallback((objectName: string, methodName: string, value?: string) => {
     if (!instanceRef.current) return false
-    instanceRef.current.SendMessage(objectName, methodName, value ?? "")
-    return true
+    try {
+      instanceRef.current.SendMessage(objectName, methodName, value ?? "")
+      return true
+    } catch {
+      return false
+    }
   }, [])
 
   return {
@@ -113,4 +118,3 @@ export function useUnityWebGL(canvasRef: RefObject<HTMLCanvasElement | null>, co
     sendMessage,
   }
 }
-

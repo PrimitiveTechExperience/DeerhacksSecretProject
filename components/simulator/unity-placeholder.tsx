@@ -9,6 +9,8 @@ import { UNITY_BUILD_CONFIG } from "@/lib/unity-webgl"
 
 interface UnityPlaceholderProps {
   params: RobotParams
+  segmentCount?: 1 | 2
+  segmentColors?: { s1: string; s2: string }
   target?: Point3
   obstacles?: Obstacle[]
 }
@@ -24,20 +26,54 @@ interface UnityPlaceholderProps {
  * Expected Unity interface:
  *   sendMessage("RobotController", "UpdateParams", JSON.stringify(params))
  */
-export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholderProps) {
+export function UnityPlaceholder({
+  params,
+  segmentCount = 1,
+  segmentColors = { s1: "#ff6d4d", s2: "#4dd8ff" },
+  target,
+  obstacles,
+}: UnityPlaceholderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { status, progress, error, isReady, sendMessage } = useUnityWebGL(canvasRef, UNITY_BUILD_CONFIG)
+  const bridgeObjects = UNITY_BUILD_CONFIG.bridgeObjectNames ?? ["robot", "RobotController", "ContinuumSegmentController"]
+
+  const sendToUnity = (methodName: string, payload: string) => {
+    if (!isReady) return false
+    let sent = false
+    for (const objectName of bridgeObjects) {
+      sent = sendMessage(objectName, methodName, payload) || sent
+    }
+    return sent
+  }
+
+  const buildSegmentsPayload = () => {
+    const segments = [
+      { kappa: params.kappa1, phiDeg: params.phi1, length: params.L1, color: segmentColors.s1 },
+      { kappa: params.kappa2, phiDeg: params.phi2, length: params.L2, color: segmentColors.s2 },
+    ]
+
+    return JSON.stringify({
+      nSegments: segmentCount,
+      segments: segments.slice(0, segmentCount),
+      // keep legacy fields present for compatibility with older parser paths
+      kappa1: params.kappa1,
+      phi1: params.phi1,
+      L1: params.L1,
+      kappa2: params.kappa2,
+      phi2: params.phi2,
+      L2: params.L2,
+    })
+  }
 
   useEffect(() => {
-    if (!isReady) return
-    sendMessage("RobotController", "UpdateParams", JSON.stringify(params))
-  }, [isReady, params, sendMessage])
+    sendToUnity("UpdateParams", buildSegmentsPayload())
+  }, [isReady, params, segmentColors, sendMessage])
 
   useEffect(() => {
     if (!isReady) return
     if (!target && !obstacles?.length) return
     const levelContext = JSON.stringify({ target, obstacles })
-    sendMessage("RobotController", "UpdateLevelContext", levelContext)
+    sendToUnity("UpdateLevelContext", levelContext)
   }, [isReady, target, obstacles, sendMessage])
 
   return (
@@ -51,10 +87,19 @@ export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholder
       {/* Scanline overlay */}
       <div className="scanlines absolute inset-0" />
 
-      <canvas ref={canvasRef} className="absolute inset-0 z-[1] h-full w-full" />
+      <canvas
+        id="unity-canvas"
+        ref={canvasRef}
+        tabIndex={-1}
+        className="absolute inset-0 z-[1] h-full w-full"
+      />
 
       {/* Overlay content */}
-      <div className="relative z-10 flex flex-col items-center gap-6 px-8 text-center pointer-events-none">
+      <div
+        className={`relative z-10 flex flex-col items-center gap-6 px-8 text-center pointer-events-none transition-opacity duration-300 ${
+          status === "ready" ? "opacity-0" : "opacity-100"
+        }`}
+      >
         {/* Robot arm icon, large */}
         <div className="crosshair relative flex size-24 items-center justify-center rounded-2xl border border-primary/15 bg-primary/5">
           <svg
@@ -137,6 +182,15 @@ export function UnityPlaceholder({ params, target, obstacles }: UnityPlaceholder
           </div>
         )}
       </div>
+
+      {status === "ready" && (
+        <div className="pointer-events-none absolute right-3 top-3 z-10">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/65 px-2.5 py-1 backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-green-500" />
+            <span className="font-mono text-[10px] font-medium tracking-wider text-primary uppercase">Unity Ready</span>
+          </span>
+        </div>
+      )}
     </div>
   )
 }

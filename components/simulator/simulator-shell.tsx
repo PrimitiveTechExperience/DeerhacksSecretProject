@@ -16,9 +16,15 @@ import type { RobotParams } from "@/lib/types"
 import { evaluateLevel, getLevelById } from "@/lib/levels"
 import { getLearningProgress, markLevelCompleted } from "@/lib/learning-progress"
 
+const DEFAULT_SEGMENT_COLORS = {
+  s1: "#ff6d4d",
+  s2: "#4dd8ff",
+}
+
 export function SimulatorShell() {
   const searchParams = useSearchParams()
   const [params, setParams] = useState<RobotParams>(DEFAULT_PARAMS)
+  const [segmentColors, setSegmentColors] = useState(DEFAULT_SEGMENT_COLORS)
   const [completedLevels, setCompletedLevels] = useState<number[]>([])
   const [checkMessage, setCheckMessage] = useState<string>("")
   const [checkPassed, setCheckPassed] = useState(false)
@@ -34,10 +40,12 @@ export function SimulatorShell() {
   useEffect(() => {
     if (activeLevel) {
       setParams(activeLevel.initialParams)
+      setSegmentColors(DEFAULT_SEGMENT_COLORS)
       setCheckMessage("")
       setCheckPassed(false)
     } else {
       setParams(DEFAULT_PARAMS)
+      setSegmentColors(DEFAULT_SEGMENT_COLORS)
     }
   }, [activeLevel])
 
@@ -139,11 +147,25 @@ export function SimulatorShell() {
 
       <main className="flex flex-1 flex-col gap-3 overflow-hidden p-3 lg:flex-row">
         <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">
-          <ControlPanel params={params} onParamsChange={setParams} />
+          <ControlPanel
+            params={params}
+            segmentCount={activeLevel ? 2 : 1}
+            segmentColors={segmentColors}
+            onParamsChange={setParams}
+            onSegmentColorChange={(segment, color) =>
+              setSegmentColors((prev) => ({ ...prev, [segment]: color }))
+            }
+          />
         </aside>
 
         <div className="min-h-[300px] flex-1">
-          <UnityPlaceholder params={params} target={activeLevel?.target} obstacles={activeLevel?.obstacles} />
+          <UnityPlaceholder
+            params={params}
+            segmentCount={activeLevel ? 2 : 1}
+            segmentColors={segmentColors}
+            target={activeLevel?.target}
+            obstacles={activeLevel?.obstacles}
+          />
         </div>
 
         <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">

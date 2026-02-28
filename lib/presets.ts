@@ -3,9 +3,9 @@ import type { Preset, RobotParams } from './types'
 export const DEFAULT_PARAMS: RobotParams = {
   kappa1: 2.0,
   phi1: 0,
-  L1: 0.5,
-  kappa2: 2.0,
-  phi2: 180,
+  L1: 0.55,
+  kappa2: 0,
+  phi2: 0,
   L2: 0.5,
 }
 

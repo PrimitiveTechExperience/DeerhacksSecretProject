@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -23,7 +24,10 @@ const presetIcons: Record<string, React.ElementType> = {
 
 interface ControlPanelProps {
   params: RobotParams
+  segmentCount?: 1 | 2
+  segmentColors: { s1: string; s2: string }
   onParamsChange: (params: RobotParams) => void
+  onSegmentColorChange: (segment: "s1" | "s2", color: string) => void
 }
 
 function ParamSlider({
@@ -64,7 +68,63 @@ function ParamSlider({
   )
 }
 
-export function ControlPanel({ params, onParamsChange }: ControlPanelProps) {
+function SegmentColorPicker({
+  segmentKey,
+  color,
+  onConfirm,
+}: {
+  segmentKey: "s1" | "s2"
+  color: string
+  onConfirm: (segment: "s1" | "s2", color: string) => void
+}) {
+  const [draftColor, setDraftColor] = useState(color)
+
+  useEffect(() => {
+    setDraftColor(color)
+  }, [color])
+
+  return (
+    <details className="rounded-md border border-border/40 bg-secondary/20">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs">
+        <span className="font-mono tracking-wider text-muted-foreground uppercase">Change Color</span>
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="size-4 rounded border border-border/60"
+            style={{ backgroundColor: color }}
+            aria-hidden="true"
+          />
+          <span className="font-mono text-[11px] text-foreground">{color.toUpperCase()}</span>
+        </span>
+      </summary>
+      <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
+        <input
+          type="color"
+          value={draftColor}
+          onChange={(e) => setDraftColor(e.target.value)}
+          className="h-8 w-10 cursor-pointer rounded border border-border/60 bg-transparent p-0"
+          aria-label="Pick segment color"
+        />
+        <div className="font-mono text-[11px] text-muted-foreground">{draftColor.toUpperCase()}</div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="ml-auto h-8 border-primary/40 text-xs hover:border-primary hover:text-primary"
+          onClick={() => onConfirm(segmentKey, draftColor)}
+        >
+          Confirm
+        </Button>
+      </div>
+    </details>
+  )
+}
+
+export function ControlPanel({
+  params,
+  segmentCount = 1,
+  segmentColors,
+  onParamsChange,
+  onSegmentColorChange,
+}: ControlPanelProps) {
   const updateParam = (key: keyof RobotParams, value: number) => {
     onParamsChange({ ...params, [key]: value })
   }
@@ -76,7 +136,7 @@ export function ControlPanel({ params, onParamsChange }: ControlPanelProps) {
           Parameters
         </h2>
         <p className="mt-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-          2-segment continuum robot
+          {segmentCount}-segment continuum robot
         </p>
       </div>
 
@@ -115,46 +175,54 @@ export function ControlPanel({ params, onParamsChange }: ControlPanelProps) {
           unit={SLIDER_CONFIG.L.unit}
           onChange={(v) => updateParam("L1", v)}
         />
+        <SegmentColorPicker segmentKey="s1" color={segmentColors.s1} onConfirm={onSegmentColorChange} />
       </div>
 
       <Separator className="bg-border/50" />
 
-      {/* Segment 2 */}
-      <div className="flex flex-col gap-3">
-        <div className="inline-flex items-center gap-2">
-          <span className="flex size-5 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-bold text-primary">
-            S2
-          </span>
-          <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Segment 2</span>
-        </div>
-        <ParamSlider
-          label={SLIDER_CONFIG.kappa.label}
-          value={params.kappa2}
-          min={SLIDER_CONFIG.kappa.min}
-          max={SLIDER_CONFIG.kappa.max}
-          step={SLIDER_CONFIG.kappa.step}
-          unit={SLIDER_CONFIG.kappa.unit}
-          onChange={(v) => updateParam("kappa2", v)}
-        />
-        <ParamSlider
-          label={SLIDER_CONFIG.phi.label}
-          value={params.phi2}
-          min={SLIDER_CONFIG.phi.min}
-          max={SLIDER_CONFIG.phi.max}
-          step={SLIDER_CONFIG.phi.step}
-          unit={SLIDER_CONFIG.phi.unit}
-          onChange={(v) => updateParam("phi2", v)}
-        />
-        <ParamSlider
-          label={SLIDER_CONFIG.L.label}
-          value={params.L2}
-          min={SLIDER_CONFIG.L.min}
-          max={SLIDER_CONFIG.L.max}
-          step={SLIDER_CONFIG.L.step}
-          unit={SLIDER_CONFIG.L.unit}
-          onChange={(v) => updateParam("L2", v)}
-        />
-      </div>
+      {segmentCount > 1 && (
+        <>
+          <Separator className="bg-border/50" />
+
+          {/* Segment 2 */}
+          <div className="flex flex-col gap-3">
+            <div className="inline-flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-bold text-primary">
+                S2
+              </span>
+              <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Segment 2</span>
+            </div>
+            <ParamSlider
+              label={SLIDER_CONFIG.kappa.label}
+              value={params.kappa2}
+              min={SLIDER_CONFIG.kappa.min}
+              max={SLIDER_CONFIG.kappa.max}
+              step={SLIDER_CONFIG.kappa.step}
+              unit={SLIDER_CONFIG.kappa.unit}
+              onChange={(v) => updateParam("kappa2", v)}
+            />
+            <ParamSlider
+              label={SLIDER_CONFIG.phi.label}
+              value={params.phi2}
+              min={SLIDER_CONFIG.phi.min}
+              max={SLIDER_CONFIG.phi.max}
+              step={SLIDER_CONFIG.phi.step}
+              unit={SLIDER_CONFIG.phi.unit}
+              onChange={(v) => updateParam("phi2", v)}
+            />
+            <ParamSlider
+              label={SLIDER_CONFIG.L.label}
+              value={params.L2}
+              min={SLIDER_CONFIG.L.min}
+              max={SLIDER_CONFIG.L.max}
+              step={SLIDER_CONFIG.L.step}
+              unit={SLIDER_CONFIG.L.unit}
+              onChange={(v) => updateParam("L2", v)}
+            />
+            <SegmentColorPicker segmentKey="s2" color={segmentColors.s2} onConfirm={onSegmentColorChange} />
+          </div>
+        </>
+      )}
 
       <Separator className="bg-border/50" />
 

@@ -4,6 +4,7 @@ export interface UnityBuildConfig {
   frameworkUrl: string
   codeUrl: string
   streamingAssetsUrl?: string
+  bridgeObjectNames?: string[]
   companyName: string
   productName: string
   productVersion: string
@@ -14,13 +15,13 @@ export interface UnityBuildConfig {
  * Place the build under: /public/unity/Build/
  */
 export const UNITY_BUILD_CONFIG: UnityBuildConfig = {
-  loaderUrl: "/unity/Build/Build.loader.js",
-  dataUrl: "/unity/Build/Build.data",
-  frameworkUrl: "/unity/Build/Build.framework.js",
-  codeUrl: "/unity/Build/Build.wasm",
+  loaderUrl: "/unity/Build/Unity.loader.js",
+  dataUrl: "/unity/Build/Unity.data.br",
+  frameworkUrl: "/unity/Build/Unity.framework.js.br",
+  codeUrl: "/unity/Build/Unity.wasm.br",
   streamingAssetsUrl: "StreamingAssets",
+  bridgeObjectNames: ["robot", "RobotController", "ContinuumSegmentController"],
   companyName: "ContinuumCoach",
   productName: "ContinuumRobotSimulator",
   productVersion: "0.1.0",
 }
-

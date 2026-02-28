@@ -4,10 +4,10 @@
 
 Place Unity WebGL build files under:
 
-- `public/unity/Build/Build.loader.js`
-- `public/unity/Build/Build.framework.js`
-- `public/unity/Build/Build.data`
-- `public/unity/Build/Build.wasm`
+- `public/unity/Build/Unity.loader.js`
+- `public/unity/Build/Unity.framework.js.br`
+- `public/unity/Build/Unity.data.br`
+- `public/unity/Build/Unity.wasm.br`
 
 If names differ, update:
 
@@ -26,4 +26,3 @@ Methods:
 
 - `UpdateParams(string json)`
 - `UpdateLevelContext(string json)` (optional but recommended)
-
