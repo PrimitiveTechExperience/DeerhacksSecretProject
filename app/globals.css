@@ -1,0 +1,359 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Warm industrial light theme - blueprint paper feel */
+  --background: oklch(0.975 0.005 85);
+  --foreground: oklch(0.15 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 260);
+  --primary: oklch(0.7 0.17 55);
+  --primary-foreground: oklch(0.13 0.03 55);
+  --secondary: oklch(0.94 0.01 260);
+  --secondary-foreground: oklch(0.25 0.02 260);
+  --muted: oklch(0.94 0.01 260);
+  --muted-foreground: oklch(0.45 0.015 260);
+  --accent: oklch(0.93 0.025 55);
+  --accent-foreground: oklch(0.2 0.03 55);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.01 260);
+  --input: oklch(0.9 0.01 260);
+  --ring: oklch(0.7 0.17 55);
+  --chart-1: oklch(0.7 0.17 55);
+  --chart-2: oklch(0.6 0.15 270);
+  --chart-3: oklch(0.55 0.18 150);
+  --chart-4: oklch(0.7 0.15 195);
+  --chart-5: oklch(0.6 0.2 330);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.97 0.005 260);
+  --sidebar-foreground: oklch(0.15 0.02 260);
+  --sidebar-primary: oklch(0.7 0.17 55);
+  --sidebar-primary-foreground: oklch(0.13 0.03 55);
+  --sidebar-accent: oklch(0.93 0.025 55);
+  --sidebar-accent-foreground: oklch(0.2 0.03 55);
+  --sidebar-border: oklch(0.9 0.01 260);
+  --sidebar-ring: oklch(0.7 0.17 55);
+}
+
+.dark {
+  /* Deep navy industrial dark theme */
+  --background: oklch(0.12 0.025 260);
+  --foreground: oklch(0.9 0.01 85);
+  --card: oklch(0.15 0.025 260);
+  --card-foreground: oklch(0.9 0.01 85);
+  --popover: oklch(0.15 0.025 260);
+  --popover-foreground: oklch(0.9 0.01 85);
+  --primary: oklch(0.78 0.15 60);
+  --primary-foreground: oklch(0.1 0.03 260);
+  --secondary: oklch(0.2 0.02 260);
+  --secondary-foreground: oklch(0.9 0.01 85);
+  --muted: oklch(0.2 0.02 260);
+  --muted-foreground: oklch(0.55 0.015 85);
+  --accent: oklch(0.22 0.035 55);
+  --accent-foreground: oklch(0.9 0.01 85);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.24 0.02 260);
+  --input: oklch(0.24 0.02 260);
+  --ring: oklch(0.78 0.15 60);
+  --chart-1: oklch(0.78 0.15 60);
+  --chart-2: oklch(0.65 0.18 270);
+  --chart-3: oklch(0.7 0.15 150);
+  --chart-4: oklch(0.75 0.15 195);
+  --chart-5: oklch(0.65 0.2 330);
+  --sidebar: oklch(0.13 0.025 260);
+  --sidebar-foreground: oklch(0.9 0.01 85);
+  --sidebar-primary: oklch(0.78 0.15 60);
+  --sidebar-primary-foreground: oklch(0.1 0.03 260);
+  --sidebar-accent: oklch(0.22 0.035 55);
+  --sidebar-accent-foreground: oklch(0.9 0.01 85);
+  --sidebar-border: oklch(0.24 0.02 260);
+  --sidebar-ring: oklch(0.78 0.15 60);
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-display: 'Space Grotesk', 'Geist', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ===== KaTeX / Equation blueprint styling ===== */
+
+/* Block-level equation containers */
+.equation-renderer .katex-display {
+  position: relative;
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid oklch(0.7 0.17 55 / 0.12);
+  background:
+    linear-gradient(135deg, oklch(0.7 0.17 55 / 0.03) 0%, transparent 60%),
+    oklch(0.7 0.17 55 / 0.02);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.dark .equation-renderer .katex-display {
+  border-color: oklch(0.78 0.15 60 / 0.15);
+  background:
+    linear-gradient(135deg, oklch(0.78 0.15 60 / 0.05) 0%, transparent 60%),
+    oklch(0.78 0.15 60 / 0.03);
+}
+
+/* Corner tick marks on block equations */
+.equation-renderer .katex-display::before,
+.equation-renderer .katex-display::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: oklch(0.7 0.17 55 / 0.25);
+}
+.dark .equation-renderer .katex-display::before,
+.dark .equation-renderer .katex-display::after {
+  border-color: oklch(0.78 0.15 60 / 0.35);
+}
+.equation-renderer .katex-display::before {
+  top: 4px;
+  left: 4px;
+  border-left: 1.5px solid;
+  border-top: 1.5px solid;
+  border-color: inherit;
+}
+.equation-renderer .katex-display::after {
+  bottom: 4px;
+  right: 4px;
+  border-right: 1.5px solid;
+  border-bottom: 1.5px solid;
+  border-color: inherit;
+}
+
+/* Equation text colors */
+.equation-renderer .katex {
+  font-size: 0.85em;
+  color: oklch(0.25 0.03 260);
+}
+.dark .equation-renderer .katex {
+  color: oklch(0.92 0.02 60);
+}
+
+/* Inline math styling - subtle highlight */
+.equation-renderer p .katex {
+  padding: 0.05em 0.2em;
+  border-radius: 3px;
+  background: oklch(0.7 0.17 55 / 0.06);
+}
+.dark .equation-renderer p .katex {
+  background: oklch(0.78 0.15 60 / 0.08);
+}
+
+/* Make fractions and operators pop */
+.equation-renderer .katex .mfrac .frac-line {
+  border-color: oklch(0.7 0.17 55 / 0.5);
+}
+.dark .equation-renderer .katex .mfrac .frac-line {
+  border-color: oklch(0.78 0.15 60 / 0.6);
+}
+
+/* Equation label pill */
+.equation-renderer .katex-display > .katex > .katex-html::after {
+  content: 'eq.';
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: oklch(0.7 0.17 55 / 0.4);
+  background: var(--card);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+.dark .equation-renderer .katex-display > .katex > .katex-html::after {
+  color: oklch(0.78 0.15 60 / 0.5);
+  background: var(--card);
+}
+
+/* Blueprint grid background */
+.blueprint-grid {
+  background-image:
+    linear-gradient(to right, var(--primary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--primary) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.04;
+}
+.dark .blueprint-grid {
+  opacity: 0.06;
+}
+
+/* Fine grid for simulator */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, var(--primary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--primary) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.04;
+}
+.dark .grid-bg {
+  opacity: 0.07;
+}
+
+/* Animated robot arm pulse */
+@keyframes arm-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.arm-pulse {
+  animation: arm-pulse 3s ease-in-out infinite;
+}
+
+/* Animated glow ring */
+@keyframes glow-ring {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.78 0.15 60 / 0.3); }
+  50% { box-shadow: 0 0 0 8px oklch(0.78 0.15 60 / 0); }
+}
+.glow-ring {
+  animation: glow-ring 2.5s ease-in-out infinite;
+}
+
+/* Crosshair marker */
+.crosshair::before,
+.crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--primary);
+  opacity: 0.15;
+}
+.crosshair::before {
+  width: 1px;
+  height: 12px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.crosshair::after {
+  width: 12px;
+  height: 1px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Dimension line decoration */
+.dim-line {
+  position: relative;
+}
+.dim-line::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.2;
+}
+
+/* Scanline overlay */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--primary) 2px,
+    var(--primary) 4px
+  );
+  opacity: 0.015;
+  pointer-events: none;
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Segment bending animation */
+@keyframes bend-s1 {
+  0% { d: path("M 200 350 C 200 300, 190 260, 170 220"); }
+  33% { d: path("M 200 350 C 200 300, 215 260, 240 220"); }
+  66% { d: path("M 200 350 C 200 300, 185 250, 160 210"); }
+  100% { d: path("M 200 350 C 200 300, 190 260, 170 220"); }
+}
+@keyframes bend-s2 {
+  0% { d: path("M 170 220 C 155 185, 135 160, 110 140"); }
+  33% { d: path("M 240 220 C 255 185, 260 155, 250 130"); }
+  66% { d: path("M 160 210 C 145 175, 155 145, 175 120"); }
+  100% { d: path("M 170 220 C 155 185, 135 160, 110 140"); }
+}
+
+/* Glow effects */
+.glow-sm {
+  box-shadow: 0 0 12px oklch(0.7 0.17 55 / 0.15);
+}
+.dark .glow-sm {
+  box-shadow: 0 0 16px oklch(0.78 0.15 60 / 0.25);
+}
+.glow-lg {
+  box-shadow: 0 0 30px oklch(0.7 0.17 55 / 0.15), 0 0 80px oklch(0.7 0.17 55 / 0.05);
+}
+.dark .glow-lg {
+  box-shadow: 0 0 30px oklch(0.78 0.15 60 / 0.25), 0 0 80px oklch(0.78 0.15 60 / 0.08);
+}

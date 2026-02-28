@@ -1,0 +1,33 @@
+{
+	"folders": [
+		{
+			"name": "app",
+			"path": "."
+		},
+		{
+			"name": "components",
+			"path": "../components"
+		},
+		{
+			"name": "hooks",
+			"path": "../hooks"
+		},
+		{
+			"name": "lib",
+			"path": "../lib"
+		},
+		{
+			"name": "public",
+			"path": "../public"
+		},
+		{
+			"name": "styles",
+			"path": "../styles"
+		},
+		{
+			"name": "DeerhacksSecretProject",
+			"path": "../../../DeerhacksSecretProject"
+		}
+	],
+	"settings": {}
+}
