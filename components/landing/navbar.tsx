@@ -1,11 +1,15 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AuthButtons } from "@/components/auth/auth-buttons"
 
 export function Navbar() {
+  const pathname = usePathname()
+  const isLandingPage = pathname === "/"
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-6xl items-center px-6">
@@ -36,22 +40,26 @@ export function Navbar() {
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-3">
           <div className="flex items-center gap-1.5">
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
-            >
-              <a href="#features">Features</a>
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
-            >
-              <a href="#how-it-works">How It Works</a>
-            </Button>
+            {isLandingPage && (
+              <>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+                >
+                  <a href="#features">Features</a>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline-flex"
+                >
+                  <a href="#how-it-works">How It Works</a>
+                </Button>
+              </>
+            )}
             <Button
               asChild
               variant="ghost"
