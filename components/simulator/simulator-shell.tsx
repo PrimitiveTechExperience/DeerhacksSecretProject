@@ -147,7 +147,7 @@ export function SimulatorShell() {
         </div>
 
         <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">
-          <CoachPanel params={params} />
+          <CoachPanel params={params} levelId={activeLevel?.id} />
         </aside>
       </main>
     </div>

@@ -1,12 +1,16 @@
+import { Buffer } from "node:buffer"
 import { NextResponse } from "next/server"
 import type { RobotParams } from "@/lib/types"
 import { getLevelById } from "@/lib/levels"
 import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson } from "@/lib/ai/gemini"
+import { hasElevenLabsApiKey, synthesizeSpeechWithElevenLabs } from "@/lib/ai/elevenlabs"
 
 interface LevelHintResponse {
   hint: string[]
   what_to_change: string
   short_voice_line: string
+  voice_audio_base64?: string
+  voice_mime_type?: string
 }
 
 function fallbackHint(levelId: number): LevelHintResponse {
@@ -89,6 +93,27 @@ No markdown.`
     if (!Array.isArray(parsed.hint) || typeof parsed.what_to_change !== "string") {
       return NextResponse.json(fallbackHint(levelId))
     }
+
+    if (hasElevenLabsApiKey()) {
+      try {
+        const script = [
+          `Level ${level.id}: ${level.title}`,
+          `Steps: ${parsed.hint.join(". ")}`,
+          `Focus: ${parsed.what_to_change}`,
+          parsed.short_voice_line,
+        ]
+          .filter(Boolean)
+          .join(". ")
+        const buffer = await synthesizeSpeechWithElevenLabs({ text: script })
+        if (buffer) {
+          parsed.voice_audio_base64 = Buffer.from(buffer).toString("base64")
+          parsed.voice_mime_type = "audio/mpeg"
+        }
+      } catch (error) {
+        console.error("Level hint TTS error:", error)
+      }
+    }
+
     return NextResponse.json(parsed)
   } catch {
     return NextResponse.json(fallbackHint(0))

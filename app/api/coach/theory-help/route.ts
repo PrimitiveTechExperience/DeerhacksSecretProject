@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTheoryLevelById } from "@/lib/theory-levels"
-import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson } from "@/lib/ai/gemini"
+import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson, normalizeLatexContent } from "@/lib/ai/gemini"
 
 interface TheoryHelpResponse {
   guidance: string
@@ -78,6 +78,9 @@ Return only valid JSON in this schema:
 
     if (!parsed || !Array.isArray(parsed.steps) || typeof parsed.guidance !== "string") {
       return NextResponse.json(fallback)
+    }
+    if (parsed.solution) {
+      parsed.solution = normalizeLatexContent(parsed.solution) ?? parsed.solution
     }
     return NextResponse.json(parsed)
   } catch {

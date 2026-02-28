@@ -10,6 +10,7 @@ import {
   type FrontendAiUsageRequest,
   type FrontendAiUsageResult,
 } from "@/lib/ai/frontend-usage"
+import { generateGeminiContent, hasGeminiApiKey } from "@/lib/ai/gemini"
 
 const USAGE_SET = new Set<FrontendAiUsage>(FRONTEND_AI_USAGES)
 
@@ -163,11 +164,13 @@ async function proxyNarration(
     }
   }
 
+  const normalizedText = await prepareSpeechFriendlyText(text)
+
   const response = await narrate(
     new Request("http://internal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: normalizedText }),
     })
   )
 
@@ -194,6 +197,33 @@ async function proxyNarration(
       mime_type: mimeType,
     },
   }
+}
+
+async function prepareSpeechFriendlyText(original: string): Promise<string> {
+  if (!hasGeminiApiKey()) return original
+
+  const prompt = `Rewrite the following coach output so that it is easy for a text-to-speech voice to read aloud.
+- Replace LaTeX or math notation with spoken descriptions (e.g., "$\\kappa$" -> "kappa").
+- Break dense math into short sentences.
+- Preserve the technical meaning but keep it conversational and under 120 words if possible.
+- Do not include markdown code fences or LaTeX delimiters.
+
+COACH OUTPUT:
+${original}`
+
+  try {
+    const result = await generateGeminiContent({
+      parts: [{ text: prompt }],
+      temperature: 0.3,
+      maxOutputTokens: 300,
+    })
+    if (typeof result === "string" && result.trim().length > 0) {
+      return result.trim()
+    }
+  } catch (error) {
+    console.error("prepareSpeechFriendlyText error:", error)
+  }
+  return original
 }
 
 async function tryParseJson(response: Response): Promise<unknown> {

@@ -4,6 +4,7 @@ import {
 	generateGeminiContent,
 	hasGeminiApiKey,
 	parseGeminiJson,
+	normalizeLatexContent,
 } from '@/lib/ai/gemini';
 
 const DEMO_RESPONSE: CoachResponse = {
@@ -101,6 +102,9 @@ Respond ONLY with valid JSON, no markdown or code fences. Make sure that the JSO
 			);
 			return NextResponse.json(DEMO_RESPONSE);
 		}
+
+		parsed.math_deep_dive =
+			normalizeLatexContent(parsed.math_deep_dive) ?? parsed.math_deep_dive;
 
 		return NextResponse.json(parsed);
 	} catch (err) {

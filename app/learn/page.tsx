@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Sparkles } from "lucide-react"
+import { ArrowLeft, Loader2, Pause, Play, Sparkles, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -27,6 +27,12 @@ interface HintResponse {
   hint: string[]
   what_to_change: string
   short_voice_line: string
+}
+
+interface HintNarrationState {
+  loading: boolean
+  audioSrc?: string
+  isPlaying: boolean
 }
 
 interface TheoryHelpResponse {
@@ -54,6 +60,23 @@ export default function LearnPage() {
   const [theoryChatInput, setTheoryChatInput] = useState("")
   const [theoryChatFiles, setTheoryChatFiles] = useState<File[]>([])
   const [showTheoryWarning, setShowTheoryWarning] = useState(false)
+  const [hintNarration, setHintNarration] = useState<HintNarrationState>({
+    loading: false,
+    audioSrc: undefined,
+    isPlaying: false,
+  })
+  const [hintNarrationError, setHintNarrationError] = useState<string | null>(null)
+  const hintAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  const resetHintNarration = useCallback(() => {
+    if (hintAudioRef.current) {
+      hintAudioRef.current.pause()
+      hintAudioRef.current.currentTime = 0
+      hintAudioRef.current = null
+    }
+    setHintNarration({ loading: false, audioSrc: undefined, isPlaying: false })
+    setHintNarrationError(null)
+  }, [])
 
   useEffect(() => {
     const progress = getLearningProgress()
@@ -62,6 +85,18 @@ export default function LearnPage() {
     const hidden = window.localStorage.getItem(THEORY_WARNING_KEY) === "1"
     setShowTheoryWarning(!hidden)
   }, [])
+
+  useEffect(() => {
+    return () => {
+      resetHintNarration()
+    }
+  }, [resetHintNarration])
+
+  useEffect(() => {
+    if (!hint) {
+      resetHintNarration()
+    }
+  }, [hint, resetHintNarration])
 
   const world1 = worldProgress(1, completed)
   const world2 = worldProgress(2, completed)
@@ -81,6 +116,7 @@ export default function LearnPage() {
     if (!level) return
     if (!isLevelUnlocked(level, completed) && !completed.includes(level.id)) return
     setSelected(level)
+    resetHintNarration()
     setHint(null)
   }
 
@@ -99,6 +135,7 @@ export default function LearnPage() {
 
   const fetchPracticalHint = async () => {
     if (!selected) return
+    resetHintNarration()
     setLoadingHint(true)
     try {
       const res = await fetch("/api/coach/level-hint", {
@@ -118,6 +155,71 @@ export default function LearnPage() {
       setLoadingHint(false)
     }
   }
+
+  const handleHintNarration = useCallback(async () => {
+    if (!hint) return
+    const sections = [
+      hint.short_voice_line?.trim() ?? "",
+      hint.hint.join(". ").trim(),
+      hint.what_to_change.trim(),
+    ].filter((part) => part.length > 0)
+    if (sections.length === 0) return
+
+    if (hintAudioRef.current) {
+      hintAudioRef.current.pause()
+      hintAudioRef.current.currentTime = 0
+    }
+
+    setHintNarration({ loading: true, audioSrc: undefined, isPlaying: false })
+    setHintNarrationError(null)
+
+    try {
+      const res = await fetch("/api/ai/usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usage: "voice_narration",
+          payload: { text: sections.join(". ") },
+        }),
+      })
+      const json = await res.json()
+
+      if (!res.ok || !json?.ok || !json?.implemented) {
+        throw new Error(json?.error || "Narration usage is unavailable.")
+      }
+
+      const audioBase64 = json?.data?.audio_base64
+      if (typeof audioBase64 !== "string" || audioBase64.length === 0) {
+        throw new Error("Narration audio was empty.")
+      }
+      const mimeType = typeof json?.data?.mime_type === "string" ? json.data.mime_type : "audio/mpeg"
+
+      setHintNarration({
+        loading: false,
+        audioSrc: `data:${mimeType};base64,${audioBase64}`,
+        isPlaying: false,
+      })
+    } catch (error) {
+      console.error("Coach hint narration failed:", error)
+      setHintNarration((prev) => ({ ...prev, loading: false }))
+      setHintNarrationError("Could not generate narration. Check your AI configuration.")
+    }
+  }, [hint])
+
+  const toggleHintPlayback = useCallback(() => {
+    const audio = hintAudioRef.current
+    if (!audio) return
+    if (audio.paused) {
+      audio.currentTime = 0
+      void audio.play().catch((err) => console.error("Coach hint playback blocked:", err))
+    } else {
+      audio.pause()
+    }
+  }, [])
+
+  const handleHintAudioState = useCallback((isPlaying: boolean) => {
+    setHintNarration((prev) => ({ ...prev, isPlaying }))
+  }, [])
 
   const fetchTheoryHelp = async (message: string, files: File[] = []) => {
     if (!selectedTheory) return
@@ -286,7 +388,16 @@ export default function LearnPage() {
         </section>
       </main>
 
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
+      <Dialog
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelected(null)
+            setHint(null)
+            resetHintNarration()
+          }
+        }}
+      >
         <DialogContent className="max-w-xl border-border/50">
           {selected && (
             <>
@@ -308,16 +419,53 @@ export default function LearnPage() {
                 </div>
                 {hint && (
                   <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
-                    <p className="mb-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-primary">
-                      <Sparkles className="size-3" />
-                      Coach Hint
-                    </p>
+                    <div className="mb-1 flex items-center gap-2">
+                      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-primary">
+                        <Sparkles className="size-3" />
+                        Coach Hint
+                      </p>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-primary"
+                          onClick={handleHintNarration}
+                          disabled={hintNarration.loading}
+                          aria-label="Narrate coach hint"
+                        >
+                          {hintNarration.loading ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Volume2 className="size-3.5" />
+                          )}
+                        </Button>
+                        {hintNarration.audioSrc && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-primary"
+                            onClick={toggleHintPlayback}
+                            aria-label={hintNarration.isPlaying ? "Pause narration" : "Play narration"}
+                          >
+                            {hintNarration.isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     <ul className="space-y-1 text-sm">
                       {hint.hint.map((line, idx) => (
                         <li key={idx}>- {line}</li>
                       ))}
                     </ul>
+                    {hint.short_voice_line && (
+                      <p className="mt-2 text-xs italic text-muted-foreground">{hint.short_voice_line}</p>
+                    )}
                     <p className="mt-2 text-xs text-muted-foreground">{hint.what_to_change}</p>
+                    {hintNarrationError && (
+                      <p className="mt-2 text-xs text-destructive">{hintNarrationError}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -455,6 +603,16 @@ export default function LearnPage() {
           )}
         </DialogContent>
       </Dialog>
+      {hintNarration.audioSrc && (
+        <audio
+          ref={hintAudioRef}
+          src={hintNarration.audioSrc}
+          onPlay={() => handleHintAudioState(true)}
+          onPause={() => handleHintAudioState(false)}
+          onEnded={() => handleHintAudioState(false)}
+          className="hidden"
+        />
+      )}
     </div>
   )
 }

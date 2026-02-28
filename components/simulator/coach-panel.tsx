@@ -14,7 +14,6 @@ import {
   BookOpen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EquationRenderer } from "./equation-renderer"
@@ -22,24 +21,88 @@ import type { RobotParams, CoachResponse } from "@/lib/types"
 
 interface CoachPanelProps {
   params: RobotParams
+  levelId?: number
 }
 
-export function CoachPanel({ params }: CoachPanelProps) {
+interface SectionVoiceState {
+  audioSrc?: string | null
+  generating?: boolean
+  isPlaying?: boolean
+}
+
+interface LevelHintResponse {
+  hint: string[]
+  what_to_change: string
+  short_voice_line: string
+  voice_audio_base64?: string
+  voice_mime_type?: string
+}
+
+const EXPLANATION_SECTION_KEYS = [
+  "coach_title",
+  "coach_changes",
+  "coach_motion",
+  "coach_math",
+  "coach_tip",
+  "coach_safety",
+] as const
+
+const HINT_SECTION_KEYS = ["hint_steps", "hint_change", "hint_voice"] as const
+
+type SectionKey =
+  | (typeof EXPLANATION_SECTION_KEYS)[number]
+  | (typeof HINT_SECTION_KEYS)[number]
+
+export function CoachPanel({ params, levelId }: CoachPanelProps) {
   const [response, setResponse] = useState<CoachResponse | null>(null)
   const [loading, setLoading] = useState(false)
-  const [narrating, setNarrating] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [voiceStyle, setVoiceStyle] = useState<"friendly" | "technical">("friendly")
   const [error, setError] = useState<string | null>(null)
   const [mathExpanded, setMathExpanded] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
+
+  const [progressiveHint, setProgressiveHint] = useState<LevelHintResponse | null>(null)
+  const [hintLoading, setHintLoading] = useState(false)
+  const [hintError, setHintError] = useState<string | null>(null)
+
+  const [sectionVoices, setSectionVoices] = useState<Record<string, SectionVoiceState>>({})
+  const sectionAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({})
+
+  const clearSectionVoices = useCallback((keys?: string[]) => {
+    setSectionVoices((prev) => {
+      if (!keys) {
+        Object.keys(prev).forEach((key) => {
+          sectionAudioRefs.current[key]?.pause()
+          delete sectionAudioRefs.current[key]
+        })
+        return {}
+      }
+
+      if (keys.length === 0) return prev
+      const next = { ...prev }
+      keys.forEach((key) => {
+        if (next[key]) {
+          sectionAudioRefs.current[key]?.pause()
+          delete sectionAudioRefs.current[key]
+          delete next[key]
+        }
+      })
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl)
+      clearSectionVoices()
     }
-  }, [audioUrl])
+  }, [clearSectionVoices])
+
+  useEffect(() => {
+    if (levelId === undefined) {
+      setProgressiveHint(null)
+      setHintError(null)
+    }
+    clearSectionVoices([...HINT_SECTION_KEYS])
+  }, [levelId, clearSectionVoices])
 
   const handleExplain = useCallback(async () => {
     setLoading(true)
@@ -54,96 +117,236 @@ export function CoachPanel({ params }: CoachPanelProps) {
       if (!res.ok) throw new Error("Failed to get coaching response")
       const data: CoachResponse = await res.json()
       setResponse(data)
+      clearSectionVoices([...EXPLANATION_SECTION_KEYS])
     } catch {
       setError("Could not reach the AI coach. Check your API key configuration.")
     } finally {
       setLoading(false)
     }
-  }, [params, voiceStyle])
+  }, [params, voiceStyle, clearSectionVoices])
 
-  const handleNarrate = useCallback(async () => {
-    if (!response) {
-      setError("Explain the configuration first to generate a narration script.")
+  const handleSectionNarrate = useCallback(
+    async (sectionKey: SectionKey, text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed) return
+
+      setSectionVoices((prev) => ({
+        ...prev,
+        [sectionKey]: { ...prev[sectionKey], generating: true },
+      }))
+
+      try {
+        const res = await fetch("/api/ai/usage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            usage: "voice_narration",
+            payload: { text: trimmed },
+          }),
+        })
+        const json = await res.json()
+
+        if (!res.ok || !json?.ok || !json?.implemented) {
+          throw new Error(json?.error || "Narration usage not available.")
+        }
+
+        const audioBase64 = json?.data?.audio_base64
+        if (typeof audioBase64 !== "string" || !audioBase64.length) {
+          throw new Error("Narration audio was empty.")
+        }
+
+        const mimeType = typeof json?.data?.mime_type === "string" ? json.data.mime_type : "audio/mpeg"
+        const audioSrc = `data:${mimeType};base64,${audioBase64}`
+
+        setSectionVoices((prev) => ({
+          ...prev,
+          [sectionKey]: { ...prev[sectionKey], generating: false, audioSrc },
+        }))
+      } catch (err) {
+        console.error("Narration failed:", err)
+        setSectionVoices((prev) => ({
+          ...prev,
+          [sectionKey]: { ...prev[sectionKey], generating: false },
+        }))
+        setError("Could not generate narration. Check your ElevenLabs API key.")
+      }
+    },
+    []
+  )
+
+  const toggleSectionPlayback = useCallback((sectionKey: SectionKey) => {
+    const audio = sectionAudioRefs.current[sectionKey]
+    if (!audio) return
+
+    if (audio.paused) {
+      audio.currentTime = 0
+      void audio.play().catch((err) => console.error("Audio playback blocked:", err))
+    } else {
+      audio.pause()
+    }
+  }, [])
+
+  const handleAudioPlayState = useCallback((sectionKey: SectionKey, isPlaying: boolean) => {
+    setSectionVoices((prev) => ({
+      ...prev,
+      [sectionKey]: { ...prev[sectionKey], isPlaying },
+    }))
+  }, [])
+
+  const renderNarrationControls = (sectionKey: SectionKey, text?: string | null) => {
+    const normalized = text?.replace(/\s+/g, " ").trim()
+    if (!normalized) return null
+
+    const voiceState = sectionVoices[sectionKey]
+    return (
+      <div className="flex items-center gap-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground"
+          onClick={() => handleSectionNarrate(sectionKey, normalized)}
+          disabled={voiceState?.generating}
+        >
+          {voiceState?.generating ? <Loader2 className="size-3.5 animate-spin" /> : <Volume2 className="size-3.5" />}
+        </Button>
+        {voiceState?.audioSrc && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={() => toggleSectionPlayback(sectionKey)}
+          >
+            {voiceState?.isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  const registerAudioRef = useCallback((sectionKey: SectionKey, node: HTMLAudioElement | null) => {
+    if (node) {
+      sectionAudioRefs.current[sectionKey] = node
+    } else {
+      delete sectionAudioRefs.current[sectionKey]
+    }
+  }, [])
+
+  const handleHint = useCallback(async () => {
+    if (!levelId) {
+      setHintError("Select a level to unlock progressive hints.")
       return
     }
 
-    const script =
-      response.short_voice_script?.trim() ||
-      `Configuration summary: ${response.title}. ${response.how_it_moves}`
-
-    if (!script) {
-      setError("No narration script is available yet. Try explaining the configuration again.")
-      return
-    }
-
-    setNarrating(true)
-    setError(null)
+    setHintError(null)
+    setHintLoading(true)
     try {
-      const res = await fetch("/api/ai/usage", {
+      const res = await fetch("/api/coach/level-hint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usage: "voice_narration",
-          payload: { text: script },
-        }),
+        body: JSON.stringify({ levelId, currentParams: params }),
       })
+      if (!res.ok) throw new Error("Failed to get hint")
 
-      const json = await res.json()
+      const data = (await res.json()) as LevelHintResponse
+      clearSectionVoices([...HINT_SECTION_KEYS])
+      setProgressiveHint(data)
 
-      if (!res.ok || !json?.ok || !json?.implemented) {
-        throw new Error(json?.error || "Narration usage not implemented.")
+      if (data.voice_audio_base64) {
+        const audioSrc = `data:${data.voice_mime_type ?? "audio/mpeg"};base64,${data.voice_audio_base64}`
+        setSectionVoices((prev) => ({
+          ...prev,
+          hint_voice: { audioSrc, generating: false, isPlaying: false },
+        }))
       }
-
-      const audioBase64 = json?.data?.audio_base64
-      if (typeof audioBase64 !== "string" || !audioBase64.length) {
-        throw new Error("Narration audio was empty.")
-      }
-
-      const mimeType = typeof json?.data?.mime_type === "string" ? json.data.mime_type : "audio/mpeg"
-      const blob = base64ToBlob(audioBase64, mimeType)
-      const url = URL.createObjectURL(blob)
-
-      if (audioRef.current) {
-        audioRef.current.src = url
-        audioRef.current.load()
-        await audioRef.current.play()
-        setIsPlaying(true)
-        if (audioUrl) URL.revokeObjectURL(audioUrl)
-        setAudioUrl(url)
-      } else {
-        setAudioUrl(url)
-      }
-    } catch (err) {
-      console.error("Narration failed:", err)
-      setError("Could not generate narration. Check your ElevenLabs API key.")
+    } catch {
+      setHintError("Could not retrieve a progressive hint. Try again.")
     } finally {
-      setNarrating(false)
+      setHintLoading(false)
     }
-  }, [response, audioUrl])
+  }, [levelId, params, clearSectionVoices])
 
-  const togglePlayback = () => {
-    if (!audioRef.current) return
-    if (audioRef.current.paused) {
-      audioRef.current.play()
-      setIsPlaying(true)
-    } else {
-      audioRef.current.pause()
-      setIsPlaying(false)
-    }
+  const renderSectionAudioElements = () => {
+    return Object.entries(sectionVoices).map(([key, state]) =>
+      state.audioSrc ? (
+        <audio
+          key={key}
+          ref={(node) => registerAudioRef(key as SectionKey, node)}
+          src={state.audioSrc || undefined}
+          onPlay={() => handleAudioPlayState(key as SectionKey, true)}
+          onPause={() => handleAudioPlayState(key as SectionKey, false)}
+          onEnded={() => handleAudioPlayState(key as SectionKey, false)}
+          className="hidden"
+        />
+      ) : null
+    )
   }
+
+  const renderHintSection = () => (
+    <div className="rounded-xl border border-primary/15 bg-primary/[0.03] p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div>
+          <p className="font-display text-sm font-semibold text-foreground">Progressive Hint</p>
+          <p className="text-xs text-muted-foreground">
+            {levelId ? `Level ${levelId}` : "Select a level on the learning map to enable hints."}
+          </p>
+        </div>
+        <Button
+          type="button"
+          onClick={handleHint}
+          disabled={!levelId || hintLoading}
+          className="ml-auto gap-2 font-mono text-xs"
+        >
+          {hintLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Lightbulb className="size-3.5" />}
+          {hintLoading ? "Coaching..." : "Get Hint"}
+        </Button>
+      </div>
+      {hintError && (
+        <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+          {hintError}
+        </div>
+      )}
+
+      {progressiveHint && (
+        <div className="mt-4 space-y-3 text-xs text-foreground">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Hint Steps</span>
+            {renderNarrationControls("hint_steps", progressiveHint.hint.join(". "))}
+          </div>
+          <ul className="list-disc space-y-1 pl-4">
+            {progressiveHint.hint.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">What to Adjust</span>
+            {renderNarrationControls("hint_change", progressiveHint.what_to_change)}
+          </div>
+          <p>{progressiveHint.what_to_change}</p>
+          {progressiveHint.short_voice_line && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+                  Coaching Line
+                </span>
+                {renderNarrationControls("hint_voice", progressiveHint.short_voice_line)}
+              </div>
+              <p className="italic text-muted-foreground">{progressiveHint.short_voice_line}</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-xl border border-border/50 bg-card p-5">
       <div>
-        <h2 className="font-display text-sm font-bold tracking-wide text-foreground">
-          AI Coach
-        </h2>
-        <p className="mt-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-          Gemini + ElevenLabs
-        </p>
+        <h2 className="font-display text-sm font-bold tracking-wide text-foreground">AI Coach</h2>
+        <p className="mt-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Gemini + ElevenLabs</p>
       </div>
 
-      {/* Voice style toggle */}
       <div className="flex gap-2">
         <Button
           variant={voiceStyle === "friendly" ? "default" : "outline"}
@@ -163,28 +366,16 @@ export function CoachPanel({ params }: CoachPanelProps) {
         </Button>
       </div>
 
-      {/* Explain button */}
-      <Button
-        onClick={handleExplain}
-        disabled={loading}
-        className="glow-sm gap-2 font-display font-semibold"
-      >
-        {loading ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Sparkles className="size-4" />
-        )}
+      <Button onClick={handleExplain} disabled={loading} className="glow-sm gap-2 font-display font-semibold">
+        {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
         {loading ? "Analyzing..." : "Explain Configuration"}
       </Button>
 
       <Separator className="bg-border/50" />
 
-      {/* Response area */}
       <div className="flex flex-1 flex-col gap-4">
         {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-            {error}
-          </div>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">{error}</div>
         )}
 
         {loading && (
@@ -204,25 +395,27 @@ export function CoachPanel({ params }: CoachPanelProps) {
               <Sparkles className="size-6 text-primary/40" />
             </div>
             <p className="max-w-[200px] text-xs leading-relaxed text-muted-foreground">
-              Adjust the robot parameters, then click
-              Explain to get AI coaching feedback.
+              Adjust the robot parameters, then click Explain to get AI coaching feedback.
             </p>
           </div>
         )}
 
         {!loading && response && (
           <div className="flex flex-col gap-4">
-            {/* Title */}
-            <h3 className="font-display text-sm font-bold text-foreground">
-              {response.title}
-            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-display text-sm font-bold text-foreground">{response.title}</h3>
+              {renderNarrationControls(
+                "coach_title",
+                response.short_voice_script || `${response.title}. ${response.how_it_moves}`
+              )}
+            </div>
 
-            {/* What Changed */}
             {response.what_changed.length > 0 && (
               <div className="flex flex-col gap-2">
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                  What Changed
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">What Changed</span>
+                  {renderNarrationControls("coach_changes", response.what_changed.join(". "))}
+                </div>
                 <ul className="flex flex-col gap-1.5">
                   {response.what_changed.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-foreground">
@@ -236,40 +429,44 @@ export function CoachPanel({ params }: CoachPanelProps) {
               </div>
             )}
 
-            {/* How It Moves */}
             <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                How It Moves
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">How It Moves</span>
+                {renderNarrationControls("coach_motion", response.how_it_moves)}
+              </div>
               <EquationRenderer content={response.how_it_moves} />
             </div>
 
-            {/* Math Deep Dive - Collapsible */}
             {response.math_deep_dive && (
-              <div className="flex flex-col rounded-lg border border-primary/15 bg-primary/[0.02] overflow-hidden">
-                <button
-                  onClick={() => setMathExpanded(!mathExpanded)}
-                  className="group flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-primary/5"
-                  aria-expanded={mathExpanded}
-                >
-                  <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <BookOpen className="size-3 text-primary" />
+              <div className="flex flex-col overflow-hidden rounded-lg border border-primary/15 bg-primary/[0.02]">
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-6 items-center justify-center rounded-md bg-primary/10">
+                      <BookOpen className="size-3 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-display text-xs font-semibold text-foreground">Math Deep Dive</span>
+                      <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">
+                        Equations &amp; Derivations
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="font-display text-xs font-semibold text-foreground">
-                      Math Deep Dive
-                    </span>
-                    <span className="font-mono text-[9px] tracking-wider text-muted-foreground uppercase">
-                      Equations &amp; Derivations
-                    </span>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {renderNarrationControls("coach_math", response.math_deep_dive)}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground"
+                      onClick={() => setMathExpanded((prev) => !prev)}
+                      aria-label="Toggle math details"
+                    >
+                      <ChevronDown
+                        className={`size-4 transition-transform duration-200 ${mathExpanded ? "rotate-180" : ""}`}
+                      />
+                    </Button>
                   </div>
-                  <ChevronDown
-                    className={`size-4 text-muted-foreground transition-transform duration-200 ${
-                      mathExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
+                </div>
                 {mathExpanded && (
                   <div className="border-t border-primary/10 px-3 py-4">
                     <EquationRenderer content={response.math_deep_dive} />
@@ -278,91 +475,39 @@ export function CoachPanel({ params }: CoachPanelProps) {
               </div>
             )}
 
-            {/* Tip */}
             <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
               <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Try This Next</span>
+                  {renderNarrationControls("coach_tip", response.one_tip)}
+                </div>
                 <EquationRenderer content={response.one_tip} />
               </div>
             </div>
 
-            {/* Safety note */}
             {response.safety_note && (
               <div className="flex gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
                 <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Safety Note</span>
+                    {renderNarrationControls("coach_safety", response.safety_note)}
+                  </div>
                   <EquationRenderer content={response.safety_note} />
                 </div>
               </div>
             )}
 
-            <Separator className="bg-border/50" />
-
-            {/* Narrate controls */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
-                  Voice Narration
-                </span>
-                {isPlaying && (
-                  <Badge variant="outline" className="border-primary/30 text-[10px] text-primary">
-                    Playing
-                  </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleNarrate}
-                  disabled={narrating}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-2 font-mono text-xs"
-                >
-                  {narrating ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Volume2 className="size-3.5" />
-                  )}
-                  {narrating ? "Generating..." : "Narrate"}
-                </Button>
-                {audioUrl && (
-                  <Button
-                    onClick={togglePlayback}
-                    variant="outline"
-                    size="sm"
-                    className="px-2.5"
-                  >
-                    {isPlaying ? (
-                      <Pause className="size-3.5" />
-                    ) : (
-                      <Play className="size-3.5" />
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Hidden audio element */}
-      <audio
-        ref={audioRef}
-        onEnded={() => setIsPlaying(false)}
-        onPause={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
-        className="hidden"
-      />
+      <Separator className="bg-border/50" />
+
+      {renderHintSection()}
+
+      {renderSectionAudioElements()}
     </div>
   )
-}
-
-function base64ToBlob(base64: string, mimeType: string) {
-  const binary = atob(base64)
-  const len = binary.length
-  const bytes = new Uint8Array(len)
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return new Blob([bytes], { type: mimeType })
 }

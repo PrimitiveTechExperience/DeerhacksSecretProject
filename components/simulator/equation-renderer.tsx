@@ -132,13 +132,28 @@ export function EquationRenderer({ content, showFrame = true, size = "sm" }: Equ
         </>
       )}
 
-      <ReactMarkdown
-        remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-        components={mdComponents}
-      >
-        {content}
-      </ReactMarkdown>
+      <div className="max-w-full overflow-x-auto">
+        <div className="min-w-0">
+          <ReactMarkdown
+            remarkPlugins={[remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={mdComponents}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
+      </div>
+      <style jsx global>{`
+        .equation-renderer .katex-display {
+          overflow-x: auto;
+          overflow-y: hidden;
+          max-width: 100%;
+          padding-bottom: 0.25rem;
+        }
+        .equation-renderer .katex-display > .katex {
+          max-width: max-content;
+        }
+      `}</style>
     </div>
   )
 }

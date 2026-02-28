@@ -88,6 +88,38 @@ export function hasGeminiApiKey(): boolean {
   return Boolean(process.env.GEMINI_API_KEY)
 }
 
+export function normalizeLatexContent(text: string | undefined | null): string | undefined {
+  if (!text) return text ?? undefined
+
+  let normalized = text
+
+  const replacements: Array<[RegExp, string]> = [
+    [/\bheta\b/gi, "theta"],
+    [/\bHeta\b/g, "Theta"],
+    [/\bhphi\b/gi, "phi"],
+    [/\bPhi\b/g, "Phi"],
+    [/\\begin\{matrix\}/gi, "\\begin{bmatrix}"],
+    [/\\end\{matrix\}/gi, "\\end{bmatrix}"],
+    [/\\left\[/g, "\\left["],
+    [/\\right\]/g, "\\right]"],
+    [/\\left\(/g, "\\left("],
+    [/\\right\)/g, "\\right)"],
+  ]
+
+  for (const [pattern, replacement] of replacements) {
+    normalized = normalized.replace(pattern, replacement)
+  }
+
+  normalized = normalized.replace(/\\frac\{([^\}]+)\}\{([^\}]+)\}/g, (_match, numerator, denominator) => {
+    return `\\dfrac{${numerator}}{${denominator}}`
+  })
+
+  normalized = balanceDollarDelimiters(normalized)
+  normalized = sanitizeLatexBlocks(normalized)
+
+  return normalized
+}
+
 function repairInvalidJsonEscapes(input: string): string {
   let changed = false
   let result = ""
@@ -131,6 +163,47 @@ function repairInvalidJsonEscapes(input: string): string {
   }
 
   return changed ? result : input
+}
+
+function balanceDollarDelimiters(input: string): string {
+  const doubleMatches = (input.match(/\$\$/g) ?? []).length
+  if (doubleMatches % 2 !== 0) {
+    input = input.replace(/\$\s*$/, "")
+    input = input.replace(/\$\$\s*$/, "")
+  }
+
+  const singleMatches = (input.match(/(?<!\$)\$(?!\$)/g) ?? []).length
+  if (singleMatches % 2 !== 0) {
+    input = input.replace(/(?<!\$)\$(?!\$)(?![^\n]*\$(?!\$))/m, "")
+  }
+
+  return input
+}
+
+function sanitizeLatexBlocks(input: string): string {
+  return input.replace(/\$\$([\s\S]*?)\$\$/g, (_, block) => {
+    const cleaned = sanitizeLatexMatrixBlock(block)
+    return `$$\n${cleaned}\n$$`
+  })
+}
+
+function sanitizeLatexMatrixBlock(block: string): string {
+  let trimmed = block.trim()
+  if (trimmed.includes("&") && !/\\begin\{/.test(trimmed)) {
+    trimmed = `\\begin{bmatrix}\n${trimmed}\n\\end{bmatrix}`
+  }
+
+  trimmed = trimmed.replace(/\\\\\s*(\\\\)+/g, "\\\\")
+
+  const beginMatches = (trimmed.match(/\\begin\{/g) ?? []).length
+  const endMatches = (trimmed.match(/\\end\{/g) ?? []).length
+  if (beginMatches > endMatches) {
+    trimmed = `${trimmed}\n\\end{bmatrix}`
+  } else if (endMatches > beginMatches) {
+    trimmed = trimmed.replace(/\\end\{[^\}]+\}(?![\s\S]*\\begin\{)/, "")
+  }
+
+  return trimmed
 }
 
 async function safeReadText(response: Response): Promise<string> {
