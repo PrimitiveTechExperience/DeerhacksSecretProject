@@ -22,6 +22,7 @@ import { LearningMapBoard } from "@/components/learn/learning-map-board"
 import { EquationRenderer } from "@/components/simulator/equation-renderer"
 import { THEORY_LEVELS, type TheoryLevel, worldProgressTheory } from "@/lib/theory-levels"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/components/auth/auth-provider"
 
 interface HintResponse {
   hint: string[]
@@ -46,6 +47,7 @@ interface TheoryChatMessage {
 
 export default function LearnPage() {
   const THEORY_WARNING_KEY = "continuum_theory_warning_hidden_v1"
+  const { user } = useAuth()
   const [track, setTrack] = useState<"practical" | "theory">("practical")
   const [completed, setCompleted] = useState<number[]>([])
   const [completedTheory, setCompletedTheory] = useState<number[]>([])
@@ -80,19 +82,29 @@ export default function LearnPage() {
 
   useEffect(() => {
     let mounted = true
+    setCompleted([])
+    setCompletedTheory([])
+
+    if (!user) {
+      return () => {
+        mounted = false
+      }
+    }
+
     void (async () => {
       const progress = await getLearningProgress()
       if (!mounted) return
       setCompleted(progress.completedLevels)
       setCompletedTheory(progress.completedTheoryLevels)
     })()
-
-    const hidden = window.localStorage.getItem(THEORY_WARNING_KEY) === "1"
-    setShowTheoryWarning(!hidden)
-
     return () => {
       mounted = false
     }
+  }, [user])
+
+  useEffect(() => {
+    const hidden = window.localStorage.getItem(THEORY_WARNING_KEY) === "1"
+    setShowTheoryWarning(!hidden)
   }, [])
 
   useEffect(() => {

@@ -11,6 +11,11 @@ const EMPTY_PROGRESS: LearningProgress = {
   completedTheoryLevels: [],
 }
 
+export function clearLearningProgressCache() {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem(STORAGE_KEY)
+}
+
 function readLocalProgress(): LearningProgress {
   if (typeof window === "undefined") return EMPTY_PROGRESS
 
