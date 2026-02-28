@@ -11,7 +11,7 @@ function badRequest(message: string) {
 }
 
 export async function GET() {
-  const user = getSessionUser()
+  const user = await getSessionUser()
   if (!user) return unauthorized()
 
   const repo = await ensureSqliteInitialized()
@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = getSessionUser()
+  const user = await getSessionUser()
   if (!user) return unauthorized()
 
   let payload: { track?: string; levelId?: unknown }

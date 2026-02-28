@@ -26,7 +26,7 @@ function defaultSettings(userId: string): UserSettings {
 }
 
 export async function GET() {
-  const user = getSessionUser()
+  const user = await getSessionUser()
   if (!user) return unauthorized()
 
   const repo = await ensureSqliteInitialized()
@@ -35,7 +35,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const user = getSessionUser()
+  const user = await getSessionUser()
   if (!user) return unauthorized()
 
   let payload: Record<string, unknown>
