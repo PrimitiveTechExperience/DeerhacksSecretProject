@@ -1,5 +1,16 @@
-import { SimulatorShell } from "@/components/simulator/simulator-shell"
+import { Suspense } from 'react';
+import { SimulatorShell } from '@/components/simulator/simulator-shell';
 
 export default function SimulatorPage() {
-  return <SimulatorShell />
+	return (
+		<Suspense
+			fallback={
+				<div className="min-h-screen flex items-center justify-center">
+					Loading...
+				</div>
+			}
+		>
+			<SimulatorShell />
+		</Suspense>
+	);
 }
