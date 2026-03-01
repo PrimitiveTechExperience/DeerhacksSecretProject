@@ -85,21 +85,33 @@ export class TursoRepository {
 		});
 	}
 
-	async markLevelCompleted(userId: string, levelId: number): Promise<void> {
+	async markLevelCompleted(
+		userId: string,
+		track: 'practical' | 'theory',
+		levelId: number,
+	): Promise<void> {
 		await this.client.execute({
-			sql: `INSERT INTO level_completions (user_id, level_id, completed_at)
-         VALUES (?, ?, datetime('now'))
-         ON CONFLICT(user_id, level_id) DO NOTHING`,
-			args: [userId, levelId],
+			sql: `INSERT INTO learning_progress (id, user_id, track, level_id, completed_at)
+         VALUES (?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id, track, level_id) DO NOTHING`,
+			args: [crypto.randomUUID(), userId, track, levelId],
 		});
 	}
 
-	async getCompletedLevels(userId: string): Promise<number[]> {
+	async listCompletedLevels(
+		userId: string,
+		track: 'practical' | 'theory',
+	): Promise<number[]> {
 		const result = await this.client.execute({
-			sql: 'SELECT level_id FROM level_completions WHERE user_id = ? ORDER BY level_id ASC',
-			args: [userId],
+			sql: 'SELECT level_id FROM learning_progress WHERE user_id = ? AND track = ? ORDER BY level_id ASC',
+			args: [userId, track],
 		});
 		return result.rows.map((row) => Number(row.level_id));
+	}
+
+	async getCompletedLevels(userId: string): Promise<number[]> {
+		// Legacy method - returns only practical levels for backwards compatibility
+		return this.listCompletedLevels(userId, 'practical');
 	}
 
 	async saveSimulatorSnapshot(args: {
@@ -124,6 +136,31 @@ export class TursoRepository {
 		});
 	}
 
+	async createSimulatorSnapshot(snapshot: {
+		id?: string;
+		userId: string;
+		trigger: 'manual' | 'auto_interval' | 'level_complete' | 'exit';
+		levelId?: number;
+		name?: string;
+		paramsJson: string;
+	}): Promise<void> {
+		await this.saveSimulatorSnapshot({
+			id: snapshot.id || crypto.randomUUID(),
+			userId: snapshot.userId,
+			trigger: snapshot.trigger,
+			levelId: snapshot.levelId,
+			name: snapshot.name,
+			paramsJson: snapshot.paramsJson,
+		});
+	}
+
+	async listRecentSimulatorSnapshots(
+		userId: string,
+		limit = 20,
+	): Promise<unknown[]> {
+		return this.getSimulatorSnapshots(userId, limit);
+	}
+
 	async getSimulatorSnapshots(
 		userId: string,
 		limit = 50,
@@ -145,9 +182,29 @@ export class TursoRepository {
 		content: string;
 	}): Promise<void> {
 		await this.client.execute({
-			sql: `INSERT INTO theory_chat_messages (id, thread_id, role, content, created_at)
+			sql: `INSERT INTO theory_chat_messages (id, thread_id, role, content_markdown, created_at)
          VALUES (?, ?, ?, ?, datetime('now'))`,
 			args: [args.id, args.threadId, args.role, args.content],
+		});
+	}
+
+	async appendTheoryChatMessage(message: {
+		id?: string;
+		threadId: string;
+		role: 'user' | 'assistant' | 'system';
+		contentMarkdown: string;
+		attachmentsJson?: string;
+	}): Promise<void> {
+		await this.client.execute({
+			sql: `INSERT INTO theory_chat_messages (id, thread_id, role, content_markdown, attachments_json, created_at)
+         VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+			args: [
+				message.id || crypto.randomUUID(),
+				message.threadId,
+				message.role,
+				message.contentMarkdown,
+				message.attachmentsJson ?? null,
+			],
 		});
 	}
 
@@ -210,5 +267,34 @@ export class TursoRepository {
 				args: values,
 			});
 		}
+	}
+
+	async upsertUserSettings(settings: {
+		userId: string;
+		savePolicy: string;
+		autoSaveSeconds: number;
+		saveChatHistory: boolean;
+		saveSimulatorState: boolean;
+		theme: string;
+	}): Promise<void> {
+		await this.client.execute({
+			sql: `INSERT INTO user_settings (user_id, save_policy, auto_save_seconds, save_chat_history, save_simulator_state, preferred_theme, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id) DO UPDATE SET
+           save_policy=excluded.save_policy,
+           auto_save_seconds=excluded.auto_save_seconds,
+           save_chat_history=excluded.save_chat_history,
+           save_simulator_state=excluded.save_simulator_state,
+           preferred_theme=excluded.preferred_theme,
+           updated_at=datetime('now')`,
+			args: [
+				settings.userId,
+				settings.savePolicy,
+				settings.autoSaveSeconds,
+				settings.saveChatHistory ? 1 : 0,
+				settings.saveSimulatorState ? 1 : 0,
+				settings.theme,
+			],
+		});
 	}
 }
