@@ -13,24 +13,16 @@ declare global {
 
 export function getSqliteRepository(): Repository {
 	if (!globalThis.__sqliteRepo) {
-		globalThis.__sqliteRepo = getRepository(); // Use adapter instead of direct instantiation
+		globalThis.__sqliteRepo = getRepository();
 	}
 	return globalThis.__sqliteRepo;
 }
 
 export async function ensureSqliteInitialized(): Promise<Repository> {
 	const repo = getSqliteRepository();
-	const hasTurso = !!(
-		process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN
-	);
-	const isVercel = process.env.VERCEL === '1';
-
-	// Initialize schema for Turso or local SQLite (not for NoOp on Vercel without Turso)
-	if ((hasTurso || !isVercel) && !globalThis.__sqliteRepoInitPromise) {
+	if (!globalThis.__sqliteRepoInitPromise) {
 		globalThis.__sqliteRepoInitPromise = repo.initSchema();
 	}
-	if (hasTurso || !isVercel) {
-		await globalThis.__sqliteRepoInitPromise;
-	}
+	await globalThis.__sqliteRepoInitPromise;
 	return repo;
 }
