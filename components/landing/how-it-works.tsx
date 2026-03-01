@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 export function HowItWorks() {
   return (
@@ -24,7 +24,7 @@ export function HowItWorks() {
           <Step
             number="01"
             title="Adjust"
-            description="Drag 6 precision sliders to set curvature, bend direction, and length for each segment. Or load a preset."
+            description="Drag precision sliders to set curvature, bend direction, and length for each segment. Or load a preset."
             detail={
               <div className="mt-4 flex gap-2">
                 {["\u03BA", "\u03C6", "L"].map((p) => (
@@ -56,18 +56,16 @@ export function HowItWorks() {
             description="Press Narrate. Natural-sounding speech reads the explanation while you keep your focus on the simulation."
             detail={
               <div className="mt-4 flex items-center gap-2">
-                {[0.3, 0.6, 1, 0.8, 0.5, 0.9, 0.4, 0.7, 1, 0.6].map(
-                  (h, i) => (
-                    <div
-                      key={i}
-                      className="w-1 rounded-full bg-primary"
-                      style={{
-                        height: `${h * 24}px`,
-                        opacity: 0.4 + h * 0.6,
-                      }}
-                    />
-                  )
-                )}
+                {[0.3, 0.6, 1, 0.8, 0.5, 0.9, 0.4, 0.7, 1, 0.6].map((h, i) => (
+                  <div
+                    key={i}
+                    className="w-1 rounded-full bg-primary"
+                    style={{
+                      height: `${h * 24}px`,
+                      opacity: 0.4 + h * 0.6,
+                    }}
+                  />
+                ))}
                 <span className="ml-2 font-mono text-[10px] text-muted-foreground">
                   0:12
                 </span>
@@ -77,7 +75,7 @@ export function HowItWorks() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Step({
@@ -86,25 +84,29 @@ function Step({
   description,
   detail,
 }: {
-  number: string
-  title: string
-  description: string
-  detail: React.ReactNode
+  number: string;
+  title: string;
+  description: string;
+  detail: React.ReactNode;
 }) {
   return (
     <div className="relative flex flex-1 gap-6 pl-0 md:flex-col md:items-center md:gap-4 md:text-center">
       {/* Number circle */}
       <div className="relative z-10 flex size-[60px] shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-background md:size-[52px]">
-        <span className="font-display text-lg font-bold text-primary">{number}</span>
+        <span className="font-display text-lg font-bold text-primary">
+          {number}
+        </span>
       </div>
 
       <div className="flex flex-col gap-2 md:items-center">
-        <h3 className="font-display text-xl font-bold text-foreground">{title}</h3>
+        <h3 className="font-display text-xl font-bold text-foreground">
+          {title}
+        </h3>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
           {description}
         </p>
         {detail}
       </div>
     </div>
-  )
+  );
 }
