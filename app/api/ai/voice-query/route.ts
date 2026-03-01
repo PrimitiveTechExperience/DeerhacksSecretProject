@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { generateGeminiContent } from "@/lib/ai/gemini"
 import { transcribeSpeechWithElevenLabs, hasElevenLabsApiKey } from "@/lib/ai/elevenlabs"
 import { getLevelById } from "@/lib/levels"
+import { getPickPlaceLevelById } from "@/lib/pick-place-levels"
 
 type VoiceContext = "coach_panel" | "progressive_hint" | "general"
 
@@ -80,7 +81,9 @@ function buildPrompt(context: VoiceContext, transcript: string, payload: unknown
       : typeof levelIdRaw === "string"
         ? Number(levelIdRaw)
         : undefined
-  const level = Number.isFinite(levelId) ? getLevelById(Number(levelId)) : undefined
+  const level = Number.isFinite(levelId)
+    ? getLevelById(Number(levelId)) ?? getPickPlaceLevelById(Number(levelId))
+    : undefined
 
   const baseContext =
     context === "coach_panel"

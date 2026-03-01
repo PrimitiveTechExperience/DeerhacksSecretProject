@@ -100,7 +100,7 @@ export function useUnityWebGL(canvasRef: RefObject<HTMLCanvasElement | null>, co
     }
   }, [canvasRef, config])
 
-  const sendMessage = useCallback((objectName: string, methodName: string, value?: string) => {
+  const sendMessage = useCallback((objectName: string, methodName: string, value?: string | number | boolean) => {
     if (!instanceRef.current) return false
     try {
       instanceRef.current.SendMessage(objectName, methodName, value ?? "")

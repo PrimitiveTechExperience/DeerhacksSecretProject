@@ -21,6 +21,8 @@ import { getLearningProgress, markTheoryLevelCompleted } from "@/lib/learning-pr
 import { LearningMapBoard } from "@/components/learn/learning-map-board"
 import { EquationRenderer } from "@/components/simulator/equation-renderer"
 import { THEORY_LEVELS, type TheoryLevel, worldProgressTheory } from "@/lib/theory-levels"
+import { PICK_PLACE_LEVELS, type PickPlaceLevelConfig } from "@/lib/pick-place-levels"
+import { getPickPlaceCompletedLevels, markPickPlaceLevelCompleted } from "@/lib/pick-place-progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { useAuth } from "@/components/auth/auth-provider"
@@ -49,11 +51,13 @@ interface TheoryChatMessage {
 export default function LearnPage() {
   const THEORY_WARNING_KEY = "continuum_theory_warning_hidden_v1"
   const { user } = useAuth()
-  const [track, setTrack] = useState<"practical" | "theory">("practical")
+  const [track, setTrack] = useState<"practical" | "theory" | "pickplace">("practical")
   const [completed, setCompleted] = useState<number[]>([])
   const [completedTheory, setCompletedTheory] = useState<number[]>([])
+  const [completedPickPlace, setCompletedPickPlace] = useState<number[]>([])
   const [selected, setSelected] = useState<LevelConfig | null>(null)
   const [selectedTheory, setSelectedTheory] = useState<TheoryLevel | null>(null)
+  const [selectedPickPlace, setSelectedPickPlace] = useState<PickPlaceLevelConfig | null>(null)
   const [hint, setHint] = useState<HintResponse | null>(null)
   const [loadingHint, setLoadingHint] = useState(false)
   const [theoryAttempt, setTheoryAttempt] = useState("")
@@ -86,6 +90,7 @@ export default function LearnPage() {
     let mounted = true
     setCompleted([])
     setCompletedTheory([])
+    setCompletedPickPlace(getPickPlaceCompletedLevels())
 
     if (!user) {
       return () => {
@@ -131,6 +136,8 @@ export default function LearnPage() {
   const world2 = worldProgress(2, completed)
   const world3 = worldProgressTheory(3, completedTheory)
   const world4 = worldProgressTheory(4, completedTheory)
+  const pickPlaceDone = PICK_PLACE_LEVELS.filter((level) => completedPickPlace.includes(level.id)).length
+  const pickPlaceTotal = PICK_PLACE_LEVELS.length
 
   const currentLevelId = LEARNING_LEVELS.find(
     (level) => !completed.includes(level.id) && isLevelUnlocked(level, completed)
@@ -138,6 +145,9 @@ export default function LearnPage() {
 
   const currentTheoryLevelId = THEORY_LEVELS.find(
     (level) => !completedTheory.includes(level.id) && level.requires.every((id) => completedTheory.includes(id))
+  )?.id
+  const currentPickPlaceLevelId = PICK_PLACE_LEVELS.find(
+    (level) => !completedPickPlace.includes(level.id) && level.requires.every((id) => completedPickPlace.includes(id))
   )?.id
 
   const openPracticalLevel = (levelId: number) => {
@@ -160,6 +170,14 @@ export default function LearnPage() {
     setTheoryChatMessages([])
     setTheoryChatInput("")
     setTheoryChatFiles([])
+  }
+
+  const openPickPlaceLevel = (levelId: number) => {
+    const level = PICK_PLACE_LEVELS.find((item) => item.id === levelId)
+    if (!level) return
+    const unlocked = level.requires.every((id) => completedPickPlace.includes(id))
+    if (!unlocked && !completedPickPlace.includes(level.id)) return
+    setSelectedPickPlace(level)
   }
 
   const fetchPracticalHint = async () => {
@@ -296,6 +314,11 @@ export default function LearnPage() {
     setCompletedTheory(progress.completedTheoryLevels)
   }
 
+  const completePickPlaceLevel = (levelId: number) => {
+    const next = markPickPlaceLevelCompleted(levelId)
+    setCompletedPickPlace(next)
+  }
+
   const dismissTheoryWarning = (neverShowAgain: boolean) => {
     if (neverShowAgain) {
       window.localStorage.setItem(THEORY_WARNING_KEY, "1")
@@ -342,6 +365,13 @@ export default function LearnPage() {
           >
             Theory + Math Track
           </Button>
+          <Button
+            variant={track === "pickplace" ? "default" : "outline"}
+            onClick={() => setTrack("pickplace")}
+            className="font-display"
+          >
+            Pick & Place Track
+          </Button>
         </section>
 
         {track === "theory" && showTheoryWarning && (
@@ -378,7 +408,7 @@ export default function LearnPage() {
                 <Progress value={(world2.done / world2.total) * 100} />
               </div>
             </>
-          ) : (
+          ) : track === "theory" ? (
             <>
               <div className="rounded-xl border border-border/50 bg-card p-4">
                 <div className="mb-2 flex items-center justify-between">
@@ -395,6 +425,14 @@ export default function LearnPage() {
                 <Progress value={(world4.done / world4.total) * 100} />
               </div>
             </>
+          ) : (
+            <div className="rounded-xl border border-border/50 bg-card p-4 sm:col-span-2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-display text-sm font-semibold">World 5: Pick & Place Demo</span>
+                <Badge variant="secondary" className="font-mono text-[10px]">{pickPlaceDone}/{pickPlaceTotal}</Badge>
+              </div>
+              <Progress value={pickPlaceTotal > 0 ? (pickPlaceDone / pickPlaceTotal) * 100 : 0} />
+            </div>
           )}
         </section>
 
@@ -406,12 +444,19 @@ export default function LearnPage() {
               currentLevelId={currentLevelId}
               onOpenLevel={openPracticalLevel}
             />
-          ) : (
+          ) : track === "theory" ? (
             <LearningMapBoard
               levels={THEORY_LEVELS}
               completed={completedTheory}
               currentLevelId={currentTheoryLevelId}
               onOpenLevel={openTheoryLevel}
+            />
+          ) : (
+            <LearningMapBoard
+              levels={PICK_PLACE_LEVELS}
+              completed={completedPickPlace}
+              currentLevelId={currentPickPlaceLevelId}
+              onOpenLevel={openPickPlaceLevel}
             />
           )}
         </section>
@@ -650,6 +695,48 @@ export default function LearnPage() {
                 </div>
                 <Button onClick={() => void completeTheoryLevel()} className="glow-sm btn-smooth">
                   Mark Complete
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(selectedPickPlace)} onOpenChange={(open) => !open && setSelectedPickPlace(null)}>
+        <DialogContent className="max-w-xl border-border/50">
+          {selectedPickPlace && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-xl">
+                  Pick & Place Level {selectedPickPlace.id}: {selectedPickPlace.title}
+                </DialogTitle>
+                <DialogDescription>{selectedPickPlace.challenge}</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 text-sm">
+                <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Concept</p>
+                  <p className="mt-1">{selectedPickPlace.concept}</p>
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Goal</p>
+                  <p className="mt-1">{selectedPickPlace.goal}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  There is no automatic checker for this demo yet. Complete the task in simulator, then mark this level done manually.
+                </p>
+              </div>
+
+              <DialogFooter className="sm:justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => completePickPlaceLevel(selectedPickPlace.id)}
+                  className="btn-smooth"
+                >
+                  Mark Complete
+                </Button>
+                <Button asChild className="glow-sm btn-smooth">
+                  <Link href={`/pick-place?level=${selectedPickPlace.id}`}>Try it in simulator</Link>
                 </Button>
               </DialogFooter>
             </>

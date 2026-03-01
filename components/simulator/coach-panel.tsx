@@ -22,6 +22,7 @@ import { EquationRenderer } from "./equation-renderer";
 import type { RobotParams, CoachResponse } from "@/lib/types";
 import { Slider } from "@/components/ui/slider";
 import { getLevelById } from "@/lib/levels";
+import { getPickPlaceLevelById } from "@/lib/pick-place-levels";
 
 declare global {
   interface Window {
@@ -82,7 +83,10 @@ interface VoiceQueryState {
 
 export function CoachPanel({ params, levelId }: CoachPanelProps) {
   const currentLevel = useMemo(
-    () => (typeof levelId === "number" ? getLevelById(levelId) : undefined),
+    () =>
+      typeof levelId === "number"
+        ? getLevelById(levelId) ?? getPickPlaceLevelById(levelId)
+        : undefined,
     [levelId],
   );
   const [response, setResponse] = useState<CoachResponse | null>(null);

@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer"
 import { NextResponse } from "next/server"
 import type { RobotParams } from "@/lib/types"
 import { getLevelById } from "@/lib/levels"
+import { getPickPlaceLevelById } from "@/lib/pick-place-levels"
 import { generateGeminiContent, hasGeminiApiKey, parseGeminiJson } from "@/lib/ai/gemini"
 import { hasElevenLabsApiKey, synthesizeSpeechWithElevenLabs } from "@/lib/ai/elevenlabs"
 
@@ -14,7 +15,7 @@ interface LevelHintResponse {
 }
 
 function fallbackHint(levelId: number): LevelHintResponse {
-  const level = getLevelById(levelId)
+  const level = getLevelById(levelId) ?? getPickPlaceLevelById(levelId)
   if (!level) {
     return {
       hint: ["Open an unlocked level first."],
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const levelId = Number(body?.levelId)
     const currentParams = body?.currentParams as RobotParams | undefined
-    const level = getLevelById(levelId)
+    const level = getLevelById(levelId) ?? getPickPlaceLevelById(levelId)
 
     if (!level) {
       return NextResponse.json(fallbackHint(levelId), { status: 404 })
@@ -48,9 +49,9 @@ export async function POST(request: Request) {
       return NextResponse.json(fallbackHint(levelId))
     }
 
-    const prompt = `You are an expert continuum robotics coach.
+    const prompt = `You are an expert robotics coach.
 Give a short actionable hint for one level. When you reference math symbols, parameters, or Greek letters, format them with LaTeX (e.g., "$\\kappa_1$", "$L_2$") so the frontend can render them properly.
-DONT INCLUDE ANY PHYSICS.
+Keep advice specific to the level's domain (continuum control or pick-and-place manipulation).
 Level:
 - id: ${level.id}
 - title: ${level.title}
