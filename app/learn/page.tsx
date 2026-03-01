@@ -372,7 +372,7 @@ export default function LearnPage() {
               </div>
               <div className="rounded-xl border border-border/50 bg-card p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-display text-sm font-semibold">World 2: Shape Control</span>
+                  <span className="font-display text-sm font-semibold">World 2: Redundancy & Singularities</span>
                   <Badge variant="secondary" className="font-mono text-[10px]">{world2.done}/{world2.total}</Badge>
                 </div>
                 <Progress value={(world2.done / world2.total) * 100} />
@@ -439,17 +439,17 @@ export default function LearnPage() {
 
               <div className="space-y-3 text-sm">
                 <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Concept</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Concept</p>
                   <p className="mt-1">{selected.concept}</p>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Goal</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Goal</p>
                   <p className="mt-1">{selected.goal}</p>
                 </div>
                 {hint && (
                   <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
                     <div className="mb-1 flex items-center gap-2">
-                      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-primary">
+                      <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-primary">
                         <Sparkles className="size-3" />
                         Coach Hint
                       </p>
@@ -549,19 +549,19 @@ export default function LearnPage() {
 
               <div className="space-y-3 text-sm">
                 <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Lesson</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Lesson</p>
                   <div className="mt-1">
                     <EquationRenderer content={selectedTheory.lesson} showFrame={false} size="md" />
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Problem</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Problem</p>
                   <div className="mt-1">
                     <EquationRenderer content={selectedTheory.problem} showFrame={false} size="md" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Your attempt</p>
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Your attempt</p>
                   <Textarea
                     value={theoryAttempt}
                     onChange={(event) => setTheoryAttempt(event.target.value)}
@@ -573,7 +573,7 @@ export default function LearnPage() {
                 {theoryChatOpen && (
                   <div className="rounded-lg border border-primary/25 bg-primary/5 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-primary">
+                      <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-primary">
                         <Sparkles className="size-3" />
                         Solution Review Chat
                       </p>
@@ -595,7 +595,7 @@ export default function LearnPage() {
                             msg.role === "assistant" ? "border border-primary/20 bg-primary/5" : "border border-border/50 bg-muted/50"
                           }`}
                         >
-                          <p className="mb-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">{msg.role}</p>
+                          <p className="mb-1 font-mono text-xs uppercase tracking-wide text-muted-foreground">{msg.role}</p>
                           <EquationRenderer content={msg.content} showFrame={false} size="md" />
                         </div>
                       ))}

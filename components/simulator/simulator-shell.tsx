@@ -183,32 +183,6 @@ export function SimulatorShell() {
         </div>
       </header>
 
-      {activeLevel && (
-        <section className="border-b border-border/40 bg-card/30 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-foreground">
-              <span className="font-semibold">Goal:</span> {activeLevel.goal}
-            </p>
-            <Button onClick={() => void handleCheck()} size="sm" className="glow-sm font-mono text-xs">
-              Check
-            </Button>
-            {activeLevel.target && (
-              <Badge variant="secondary" className="font-mono text-[10px]">
-                Target ({activeLevel.target.x.toFixed(2)}, {activeLevel.target.y.toFixed(2)}, {activeLevel.target.z.toFixed(2)})
-              </Badge>
-            )}
-            {activeLevel.obstacles?.length ? (
-              <Badge variant="secondary" className="font-mono text-[10px]">
-                Obstacles: {activeLevel.obstacles.length}
-              </Badge>
-            ) : null}
-            {checkMessage && (
-              <span className={`text-xs ${checkPassed ? "text-primary" : "text-muted-foreground"}`}>{checkMessage}</span>
-            )}
-          </div>
-        </section>
-      )}
-
       <main className="flex flex-1 flex-col gap-3 overflow-hidden p-3 lg:flex-row">
         <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">
           <ControlPanel
@@ -262,7 +236,35 @@ export function SimulatorShell() {
           />
         </div>
 
-        <aside className="w-full shrink-0 overflow-y-auto lg:w-72 xl:w-80">
+        <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:w-72 xl:w-80">
+          {activeLevel && (
+            <section className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-sm font-semibold text-foreground">Level Goal</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{activeLevel.goal}</p>
+                </div>
+                <Button onClick={() => void handleCheck()} size="sm" className="glow-sm font-mono text-xs">
+                  Check
+                </Button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeLevel.target && (
+                  <Badge variant="secondary" className="font-mono text-[10px]">
+                    Target ({activeLevel.target.x.toFixed(2)}, {activeLevel.target.y.toFixed(2)}, {activeLevel.target.z.toFixed(2)})
+                  </Badge>
+                )}
+                {activeLevel.obstacles?.length ? (
+                  <Badge variant="secondary" className="font-mono text-[10px]">
+                    Obstacles: {activeLevel.obstacles.length}
+                  </Badge>
+                ) : null}
+              </div>
+              {checkMessage && (
+                <p className={`mt-3 text-xs ${checkPassed ? "text-primary" : "text-muted-foreground"}`}>{checkMessage}</p>
+              )}
+            </section>
+          )}
           <CoachPanel params={params} levelId={activeLevel?.id} />
         </aside>
       </main>

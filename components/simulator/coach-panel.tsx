@@ -426,7 +426,8 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
         )}
 
         {!loading && response && (
-          <div className="flex flex-col gap-4">
+          <div className="max-h-[46vh] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-display text-sm font-bold text-foreground">{response.title}</h3>
               {renderNarrationControls(
@@ -523,7 +524,7 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
                 </div>
               </div>
             )}
-
+            </div>
           </div>
         )}
       </div>
