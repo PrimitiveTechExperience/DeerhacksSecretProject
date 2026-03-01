@@ -241,7 +241,7 @@ export function SimulatorShell() {
             <section className="rounded-xl border border-border/50 bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-display text-sm font-semibold text-foreground">Level Goal</p>
+                  <p className="font-display text-[18px] font-semibold text-foreground">Level Goal</p>
                   <p className="mt-1 text-xs text-muted-foreground">{activeLevel.goal}</p>
                 </div>
                 <Button onClick={() => void handleCheck()} size="sm" className="glow-sm font-mono text-xs">

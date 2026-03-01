@@ -1,18 +1,12 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Slider } from "@/components/ui/slider"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import {
-  Home,
-  ArrowUp,
-  ArrowLeft,
-  Waves,
-  Shield,
-} from "lucide-react"
-import type { RobotParams } from "@/lib/types"
-import { PRESETS, SLIDER_CONFIG } from "@/lib/presets"
+import { useEffect, useState } from "react";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Home, ArrowUp, ArrowLeft, Waves, Shield } from "lucide-react";
+import type { RobotParams } from "@/lib/types";
+import { PRESETS, SLIDER_CONFIG } from "@/lib/presets";
 
 const presetIcons: Record<string, React.ElementType> = {
   home: Home,
@@ -20,20 +14,29 @@ const presetIcons: Record<string, React.ElementType> = {
   "arrow-left": ArrowLeft,
   waves: Waves,
   shield: Shield,
-}
+};
 
 interface ControlPanelProps {
-  params: RobotParams
-  segmentCount?: number
-  segmentColors: { s1: string; s2: string }
-  extraSegments: Array<{ kappa: number; phiDeg: number; length: number; color: string }>
-  maxSegments: number
-  isLocked: boolean
-  onParamsChange: (params: RobotParams) => void
-  onSegmentColorChange: (segment: "s1" | "s2", color: string) => void
-  onAddSegment: () => void
-  onRemoveSegment: () => void
-  onExtraSegmentChange: (index: number, key: "kappa" | "phiDeg" | "length" | "color", value: number | string) => void
+  params: RobotParams;
+  segmentCount?: number;
+  segmentColors: { s1: string; s2: string };
+  extraSegments: Array<{
+    kappa: number;
+    phiDeg: number;
+    length: number;
+    color: string;
+  }>;
+  maxSegments: number;
+  isLocked: boolean;
+  onParamsChange: (params: RobotParams) => void;
+  onSegmentColorChange: (segment: "s1" | "s2", color: string) => void;
+  onAddSegment: () => void;
+  onRemoveSegment: () => void;
+  onExtraSegmentChange: (
+    index: number,
+    key: "kappa" | "phiDeg" | "length" | "color",
+    value: number | string,
+  ) => void;
 }
 
 function ParamSlider({
@@ -45,18 +48,20 @@ function ParamSlider({
   unit,
   onChange,
 }: {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit: string
-  onChange: (val: number) => void
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  onChange: (val: number) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] tracking-wide text-muted-foreground">{label}</span>
+        <span className="font-mono text-[11px] tracking-wide text-muted-foreground">
+          {label}
+        </span>
         <span className="font-mono text-xs font-semibold text-primary">
           {value.toFixed(step < 1 ? (step < 0.1 ? 2 : 1) : 0)}
           <span className="ml-0.5 text-muted-foreground">{unit}</span>
@@ -71,7 +76,7 @@ function ParamSlider({
         className="w-full"
       />
     </div>
-  )
+  );
 }
 
 function SegmentColorPicker({
@@ -79,27 +84,31 @@ function SegmentColorPicker({
   color,
   onConfirm,
 }: {
-  segmentKey: "s1" | "s2"
-  color: string
-  onConfirm: (segment: "s1" | "s2", color: string) => void
+  segmentKey: "s1" | "s2";
+  color: string;
+  onConfirm: (segment: "s1" | "s2", color: string) => void;
 }) {
-  const [draftColor, setDraftColor] = useState(color)
+  const [draftColor, setDraftColor] = useState(color);
 
   useEffect(() => {
-    setDraftColor(color)
-  }, [color])
+    setDraftColor(color);
+  }, [color]);
 
   return (
     <details className="rounded-md border border-border/40 bg-secondary/20">
       <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs">
-        <span className="font-mono tracking-wider text-muted-foreground uppercase">Change Color</span>
+        <span className="font-mono tracking-wider text-muted-foreground uppercase">
+          Change Color
+        </span>
         <span className="inline-flex items-center gap-2">
           <span
             className="size-4 rounded border border-border/60"
             style={{ backgroundColor: color }}
             aria-hidden="true"
           />
-          <span className="font-mono text-[11px] text-foreground">{color.toUpperCase()}</span>
+          <span className="font-mono text-[11px] text-foreground">
+            {color.toUpperCase()}
+          </span>
         </span>
       </summary>
       <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
@@ -110,7 +119,9 @@ function SegmentColorPicker({
           className="h-8 w-10 cursor-pointer rounded border border-border/60 bg-transparent p-0"
           aria-label="Pick segment color"
         />
-        <div className="font-mono text-[11px] text-muted-foreground">{draftColor.toUpperCase()}</div>
+        <div className="font-mono text-[11px] text-muted-foreground">
+          {draftColor.toUpperCase()}
+        </div>
         <Button
           size="sm"
           variant="outline"
@@ -121,7 +132,7 @@ function SegmentColorPicker({
         </Button>
       </div>
     </details>
-  )
+  );
 }
 
 function ExtraSegmentColorPicker({
@@ -129,23 +140,30 @@ function ExtraSegmentColorPicker({
   color,
   onConfirm,
 }: {
-  segmentIndex: number
-  color: string
-  onConfirm: (index: number, color: string) => void
+  segmentIndex: number;
+  color: string;
+  onConfirm: (index: number, color: string) => void;
 }) {
-  const [draftColor, setDraftColor] = useState(color)
+  const [draftColor, setDraftColor] = useState(color);
 
   useEffect(() => {
-    setDraftColor(color)
-  }, [color])
+    setDraftColor(color);
+  }, [color]);
 
   return (
     <details className="rounded-md border border-border/40 bg-secondary/20">
       <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs">
-        <span className="font-mono tracking-wider text-muted-foreground uppercase">Change Color</span>
+        <span className="font-mono tracking-wider text-muted-foreground uppercase">
+          Change Color
+        </span>
         <span className="inline-flex items-center gap-2">
-          <span className="size-4 rounded border border-border/60" style={{ backgroundColor: color }} />
-          <span className="font-mono text-[11px] text-foreground">{color.toUpperCase()}</span>
+          <span
+            className="size-4 rounded border border-border/60"
+            style={{ backgroundColor: color }}
+          />
+          <span className="font-mono text-[11px] text-foreground">
+            {color.toUpperCase()}
+          </span>
         </span>
       </summary>
       <div className="flex items-center gap-2 border-t border-border/40 px-3 py-2">
@@ -156,7 +174,9 @@ function ExtraSegmentColorPicker({
           className="h-8 w-10 cursor-pointer rounded border border-border/60 bg-transparent p-0"
           aria-label={`Pick segment ${segmentIndex + 3} color`}
         />
-        <div className="font-mono text-[11px] text-muted-foreground">{draftColor.toUpperCase()}</div>
+        <div className="font-mono text-[11px] text-muted-foreground">
+          {draftColor.toUpperCase()}
+        </div>
         <Button
           size="sm"
           variant="outline"
@@ -167,7 +187,7 @@ function ExtraSegmentColorPicker({
         </Button>
       </div>
     </details>
-  )
+  );
 }
 
 export function ControlPanel({
@@ -184,13 +204,13 @@ export function ControlPanel({
   onExtraSegmentChange,
 }: ControlPanelProps) {
   const updateParam = (key: keyof RobotParams, value: number) => {
-    onParamsChange({ ...params, [key]: value })
-  }
+    onParamsChange({ ...params, [key]: value });
+  };
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto rounded-xl border border-border/50 bg-card p-5">
       <div>
-        <h2 className="font-display text-sm font-bold tracking-wide text-foreground">
+        <h2 className="font-display text-[18px] font-bold tracking-wide text-foreground">
           Parameters
         </h2>
         <div className="mt-0.5 flex items-center justify-between gap-2">
@@ -229,7 +249,9 @@ export function ControlPanel({
           <span className="flex size-5 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-bold text-primary">
             S1
           </span>
-          <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Segment 1</span>
+          <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+            Segment 1
+          </span>
         </div>
         <ParamSlider
           label={SLIDER_CONFIG.kappa.label}
@@ -258,7 +280,11 @@ export function ControlPanel({
           unit={SLIDER_CONFIG.L.unit}
           onChange={(v) => updateParam("L1", v)}
         />
-        <SegmentColorPicker segmentKey="s1" color={segmentColors.s1} onConfirm={onSegmentColorChange} />
+        <SegmentColorPicker
+          segmentKey="s1"
+          color={segmentColors.s1}
+          onConfirm={onSegmentColorChange}
+        />
       </div>
 
       {segmentCount > 1 && (
@@ -271,7 +297,9 @@ export function ControlPanel({
               <span className="flex size-5 items-center justify-center rounded bg-primary/10 font-mono text-[10px] font-bold text-primary">
                 S2
               </span>
-              <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Segment 2</span>
+              <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+                Segment 2
+              </span>
             </div>
             <ParamSlider
               label={SLIDER_CONFIG.kappa.label}
@@ -300,7 +328,11 @@ export function ControlPanel({
               unit={SLIDER_CONFIG.L.unit}
               onChange={(v) => updateParam("L2", v)}
             />
-            <SegmentColorPicker segmentKey="s2" color={segmentColors.s2} onConfirm={onSegmentColorChange} />
+            <SegmentColorPicker
+              segmentKey="s2"
+              color={segmentColors.s2}
+              onConfirm={onSegmentColorChange}
+            />
           </div>
         </>
       )}
@@ -346,7 +378,9 @@ export function ControlPanel({
           <ExtraSegmentColorPicker
             segmentIndex={index}
             color={segment.color}
-            onConfirm={(segmentIndex, color) => onExtraSegmentChange(segmentIndex, "color", color)}
+            onConfirm={(segmentIndex, color) =>
+              onExtraSegmentChange(segmentIndex, "color", color)
+            }
           />
         </div>
       ))}
@@ -355,10 +389,12 @@ export function ControlPanel({
 
       {/* Presets */}
       <div className="flex flex-col gap-3">
-        <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Presets</span>
+        <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">
+          Presets
+        </span>
         <div className="grid grid-cols-2 gap-2">
           {PRESETS.map((preset) => {
-            const Icon = presetIcons[preset.icon] ?? Home
+            const Icon = presetIcons[preset.icon] ?? Home;
             return (
               <Button
                 key={preset.name}
@@ -370,10 +406,10 @@ export function ControlPanel({
                 <Icon className="size-3.5" />
                 {preset.name}
               </Button>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }
