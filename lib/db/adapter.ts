@@ -7,7 +7,7 @@ export function getRepository(): SqliteRepository | TursoRepository {
 	if (!repositoryInstance) {
 		const tursoUrl = process.env.TURSO_DATABASE_URL;
 		const tursoToken = process.env.TURSO_AUTH_TOKEN;
-		const isVercel = process.env.VERCEL === '1';
+		const isVercel = !!process.env.VERCEL;
 
 		if (tursoUrl && tursoToken) {
 			console.log('[DB] Using Turso database');
