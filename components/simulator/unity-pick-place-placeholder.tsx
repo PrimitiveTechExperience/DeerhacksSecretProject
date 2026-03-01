@@ -3,17 +3,25 @@
 import { useEffect, useRef } from "react"
 import type { RobotParams } from "@/lib/types"
 import { useUnityWebGL } from "@/hooks/use-unity-webgl"
-import { UNITY2_BUILD_CONFIG } from "@/lib/unity2-webgl"
+import type { UnityBuildConfig } from "@/lib/unity-webgl"
 
 interface UnityPickPlacePlaceholderProps {
   params: RobotParams
   grip01: number
   segmentColors: { s1: string; s2: string }
+  buildConfig: UnityBuildConfig
+  sceneLabel?: string
 }
 
-export function UnityPickPlacePlaceholder({ params, grip01, segmentColors }: UnityPickPlacePlaceholderProps) {
+export function UnityPickPlacePlaceholder({
+  params,
+  grip01,
+  segmentColors,
+  buildConfig,
+  sceneLabel = "unity2",
+}: UnityPickPlacePlaceholderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { status, progress, error, isReady, sendMessage } = useUnityWebGL(canvasRef, UNITY2_BUILD_CONFIG)
+  const { status, progress, error, isReady, sendMessage } = useUnityWebGL(canvasRef, buildConfig)
 
   const sendToObjects = (objects: string[], methodName: string, value?: string | number | boolean) => {
     if (!isReady) return false
@@ -54,7 +62,7 @@ export function UnityPickPlacePlaceholder({ params, grip01, segmentColors }: Uni
     })
     const ok = sendToObjects(robotBridgeObjects, "UpdateParams", payload)
     if (!ok) {
-      console.warn("[Unity2 bridge] UpdateParams receiver not found. Checked:", robotBridgeObjects)
+      console.warn(`[${sceneLabel} bridge] UpdateParams receiver not found. Checked:`, robotBridgeObjects)
     }
   }, [isReady, params, segmentColors])
 
@@ -70,23 +78,23 @@ export function UnityPickPlacePlaceholder({ params, grip01, segmentColors }: Uni
     sendToObjects(clawBridgeObjects, "ApplyGripImmediate", grip01)
 
     if (!setGripOk && !updateClawOk) {
-      console.warn("[Unity2 bridge] Claw receiver not found for SetGrip01/UpdateClaw. Checked:", clawBridgeObjects)
+      console.warn(`[${sceneLabel} bridge] Claw receiver not found for SetGrip01/UpdateClaw. Checked:`, clawBridgeObjects)
     }
   }, [isReady, grip01])
 
   return (
     <div className="relative h-full overflow-hidden rounded-xl border border-border/50 bg-card">
       <div className="grid-bg absolute inset-0" />
-      <canvas id="unity2-canvas" ref={canvasRef} tabIndex={-1} className="absolute inset-0 z-[1] h-full w-full" />
+      <canvas id={`${sceneLabel}-canvas`} ref={canvasRef} tabIndex={-1} className="absolute inset-0 z-[1] h-full w-full" />
 
       {status !== "ready" && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <div className="rounded-lg border border-border/50 bg-background/70 px-4 py-3 text-center backdrop-blur-sm">
             <p className="font-display text-sm font-semibold text-foreground">Pick & Place Simulator</p>
             <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-primary">
-              {status === "loading-script" && "Loading Unity2 loader..."}
+              {status === "loading-script" && `Loading ${sceneLabel} loader...`}
               {status === "creating-instance" && `Initializing... ${Math.round(progress * 100)}%`}
-              {status === "error" && "Unity2 build not detected"}
+              {status === "error" && `${sceneLabel} build not detected`}
               {status === "idle" && "Preparing..."}
             </p>
             {error && <p className="mt-1 max-w-xs text-xs text-destructive">{error}</p>}

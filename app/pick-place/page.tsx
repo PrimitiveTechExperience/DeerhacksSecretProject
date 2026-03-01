@@ -16,6 +16,8 @@ import { getPickPlaceLevelById } from "@/lib/pick-place-levels"
 import { markPickPlaceLevelCompleted } from "@/lib/pick-place-progress"
 import { DEFAULT_PARAMS } from "@/lib/presets"
 import type { RobotParams } from "@/lib/types"
+import { UNITY2_BUILD_CONFIG } from "@/lib/unity2-webgl"
+import { UNITY3_BUILD_CONFIG } from "@/lib/unity3-webgl"
 
 export default function PickPlacePage() {
   const searchParams = useSearchParams()
@@ -27,6 +29,8 @@ export default function PickPlacePage() {
     () => (Number.isFinite(levelId) ? getPickPlaceLevelById(levelId) : undefined),
     [levelId]
   )
+  const pickPlaceBuildConfig = level?.id === 202 ? UNITY3_BUILD_CONFIG : UNITY2_BUILD_CONFIG
+  const sceneLabel = level?.id === 202 ? "unity3" : "unity2"
 
   const handleMarkComplete = () => {
     if (!level) return
@@ -89,7 +93,13 @@ export default function PickPlacePage() {
         </aside>
 
         <div className="min-h-[320px] flex-1">
-          <UnityPickPlacePlaceholder params={params} grip01={grip01} segmentColors={segmentColors} />
+          <UnityPickPlacePlaceholder
+            params={params}
+            grip01={grip01}
+            segmentColors={segmentColors}
+            buildConfig={pickPlaceBuildConfig}
+            sceneLabel={sceneLabel}
+          />
         </div>
 
         <aside className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto lg:w-72 xl:w-80">
@@ -108,7 +118,7 @@ export default function PickPlacePage() {
                     <p className="mt-1 text-sm text-foreground">{level.challenge}</p>
                   </div>
                   <Badge variant="secondary" className="font-mono text-[10px]">
-                    Demo Scene: unity2
+                    Demo Scene: {sceneLabel}
                   </Badge>
                   <p className="text-xs text-muted-foreground">
                     No auto-check yet. Complete the task, then mark it manually.
