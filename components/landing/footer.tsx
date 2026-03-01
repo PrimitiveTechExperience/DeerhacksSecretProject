@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -27,13 +27,15 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-6 font-mono text-xs text-muted-foreground">
-          <Link href="/simulator" className="transition-colors hover:text-primary">
+          <Link
+            href="/simulator"
+            className="transition-colors hover:text-primary"
+          >
             Simulator
           </Link>
           <span className="text-border">|</span>
-          <span>HackXperience 2026</span>
         </div>
       </div>
     </footer>
-  )
+  );
 }
