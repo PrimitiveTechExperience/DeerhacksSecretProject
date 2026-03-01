@@ -1,17 +1,46 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
   {
     // Custom SVG icon for each
     icon: (
-      <svg viewBox="0 0 40 40" className="size-10" fill="none" aria-hidden="true">
-        <rect x="4" y="28" width="32" height="6" rx="2" className="fill-primary/10 stroke-primary" strokeWidth="1" />
-        <path d="M20 28 C20 22, 16 18, 12 12" className="stroke-primary" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M12 12 C10 8, 12 5, 16 4" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
+      <svg
+        viewBox="0 0 40 40"
+        className="size-10"
+        fill="none"
+        aria-hidden="true"
+      >
+        <rect
+          x="4"
+          y="28"
+          width="32"
+          height="6"
+          rx="2"
+          className="fill-primary/10 stroke-primary"
+          strokeWidth="1"
+        />
+        <path
+          d="M20 28 C20 22, 16 18, 12 12"
+          className="stroke-primary"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 12 C10 8, 12 5, 16 4"
+          className="stroke-primary"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
         <circle cx="16" cy="4" r="2" className="fill-primary" />
-        <circle cx="12" cy="12" r="1.5" className="fill-background stroke-primary" strokeWidth="1" />
+        <circle
+          cx="12"
+          cy="12"
+          r="1.5"
+          className="fill-background stroke-primary"
+          strokeWidth="1"
+        />
       </svg>
     ),
     title: "Real-Time Simulation",
@@ -21,16 +50,63 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 40 40" className="size-10" fill="none" aria-hidden="true">
-        <circle cx="20" cy="20" r="14" className="stroke-primary/20" strokeWidth="1" />
-        <circle cx="20" cy="20" r="8" className="stroke-primary/30" strokeWidth="1" />
+      <svg
+        viewBox="0 0 40 40"
+        className="size-10"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="20"
+          cy="20"
+          r="14"
+          className="stroke-primary/20"
+          strokeWidth="1"
+        />
+        <circle
+          cx="20"
+          cy="20"
+          r="8"
+          className="stroke-primary/30"
+          strokeWidth="1"
+        />
         <circle cx="20" cy="20" r="3" className="fill-primary" />
-        <path d="M20 6 L20 10" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M20 30 L20 34" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M6 20 L10 20" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M30 20 L34 20" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M12 12 L14.5 14.5" className="stroke-primary/60" strokeWidth="1" strokeLinecap="round" />
-        <path d="M25.5 25.5 L28 28" className="stroke-primary/60" strokeWidth="1" strokeLinecap="round" />
+        <path
+          d="M20 6 L20 10"
+          className="stroke-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M20 30 L20 34"
+          className="stroke-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M6 20 L10 20"
+          className="stroke-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M30 20 L34 20"
+          className="stroke-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 12 L14.5 14.5"
+          className="stroke-primary/60"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+        <path
+          d="M25.5 25.5 L28 28"
+          className="stroke-primary/60"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
     ),
     title: "AI Kinematic Coach",
@@ -40,22 +116,52 @@ const features = [
   },
   {
     icon: (
-      <svg viewBox="0 0 40 40" className="size-10" fill="none" aria-hidden="true">
-        <rect x="10" y="8" width="20" height="24" rx="4" className="stroke-primary/30" strokeWidth="1" />
-        <rect x="14" y="12" width="12" height="3" rx="1" className="fill-primary/20" />
+      <svg
+        viewBox="0 0 40 40"
+        className="size-10"
+        fill="none"
+        aria-hidden="true"
+      >
+        <rect
+          x="10"
+          y="8"
+          width="20"
+          height="24"
+          rx="4"
+          className="stroke-primary/30"
+          strokeWidth="1"
+        />
+        <rect
+          x="14"
+          y="12"
+          width="12"
+          height="3"
+          rx="1"
+          className="fill-primary/20"
+        />
         <path d="M14 20 L26 20" className="stroke-primary/40" strokeWidth="1" />
         <path d="M14 24 L22 24" className="stroke-primary/40" strokeWidth="1" />
         {/* Sound wave arcs */}
-        <path d="M30 16 C33 18, 33 22, 30 24" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M33 13 C38 17, 38 23, 33 27" className="stroke-primary/50" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M30 16 C33 18, 33 22, 30 24"
+          className="stroke-primary"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M33 13 C38 17, 38 23, 33 27"
+          className="stroke-primary/50"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
     title: "Voice Narration",
     description:
-      "ElevenLabs reads your coaching feedback aloud with natural speech. Choose friendly or technical tone, and learn with your eyes on the robot.",
+      "ElevenLabs reads your coaching feedback aloud with natural speech.",
     tag: "TTS",
   },
-]
+];
 
 export function Features() {
   return (
@@ -111,5 +217,5 @@ export function Features() {
         </div>
       </div>
     </section>
-  )
+  );
 }

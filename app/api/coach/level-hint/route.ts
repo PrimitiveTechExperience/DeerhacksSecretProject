@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const prompt = `You are an expert continuum robotics coach.
 Give a short actionable hint for one level. When you reference math symbols, parameters, or Greek letters, format them with LaTeX (e.g., "$\\kappa_1$", "$L_2$") so the frontend can render them properly.
-
+DONT INCLUDE ANY PHYSICS.
 Level:
 - id: ${level.id}
 - title: ${level.title}

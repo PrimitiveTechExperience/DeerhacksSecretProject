@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   Sparkles,
   Volume2,
@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EquationRenderer } from "./equation-renderer";
 import type { RobotParams, CoachResponse } from "@/lib/types";
 import { Slider } from "@/components/ui/slider";
+import { getLevelById } from "@/lib/levels";
 
 declare global {
   interface Window {
@@ -80,6 +81,10 @@ interface VoiceQueryState {
 }
 
 export function CoachPanel({ params, levelId }: CoachPanelProps) {
+  const currentLevel = useMemo(
+    () => (typeof levelId === "number" ? getLevelById(levelId) : undefined),
+    [levelId],
+  );
   const [response, setResponse] = useState<CoachResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [voiceStyle, setVoiceStyle] = useState<"friendly" | "technical">(
@@ -207,6 +212,11 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
     async (sectionKey: SectionKey, text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
+      const isHintSection = sectionKey.startsWith("hint_");
+      const narrationText =
+        isHintSection && currentLevel
+          ? `Level context. Title: ${currentLevel.title}. Concept: ${currentLevel.concept}. Goal: ${currentLevel.goal}. Coaching content to narrate: ${trimmed}`
+          : trimmed;
 
       setSectionVoices((prev) => ({
         ...prev,
@@ -219,7 +229,7 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             usage: "voice_narration",
-            payload: { text: trimmed },
+            payload: { text: narrationText },
           }),
         });
         const json = await res.json();
@@ -254,7 +264,7 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
         );
       }
     },
-    [],
+    [currentLevel],
   );
 
   const toggleSectionPlayback = useCallback((sectionKey: SectionKey) => {
@@ -358,7 +368,7 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
         if (typeof levelId === "number") {
           payload.levelId = levelId;
         }
-        if (target === "coach_panel") {
+        if (target === "coach_panel" || target === "progressive_hint") {
           payload.params = params;
         }
         form.append("contextPayload", JSON.stringify(payload));
@@ -693,7 +703,9 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
           </div>
           <ul className="list-disc space-y-1 pl-4">
             {progressiveHint.hint.map((item, index) => (
-              <li key={index}>{item}</li>
+              <li key={index}>
+                <EquationRenderer content={item} showFrame={false} size="sm" />
+              </li>
             ))}
           </ul>
           <div className="flex items-center justify-between">
@@ -705,7 +717,11 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
               progressiveHint.what_to_change,
             )}
           </div>
-          <p>{progressiveHint.what_to_change}</p>
+          <EquationRenderer
+            content={progressiveHint.what_to_change}
+            showFrame={false}
+            size="sm"
+          />
           {progressiveHint.short_voice_line && (
             <>
               <div className="flex items-center justify-between">
@@ -717,9 +733,13 @@ export function CoachPanel({ params, levelId }: CoachPanelProps) {
                   progressiveHint.short_voice_line,
                 )}
               </div>
-              <p className="italic text-muted-foreground">
-                {progressiveHint.short_voice_line}
-              </p>
+              <div className="italic text-muted-foreground">
+                <EquationRenderer
+                  content={progressiveHint.short_voice_line}
+                  showFrame={false}
+                  size="sm"
+                />
+              </div>
             </>
           )}
         </div>

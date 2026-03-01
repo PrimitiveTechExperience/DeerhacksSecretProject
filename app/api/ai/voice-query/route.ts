@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { generateGeminiContent } from "@/lib/ai/gemini"
 import { transcribeSpeechWithElevenLabs, hasElevenLabsApiKey } from "@/lib/ai/elevenlabs"
+import { getLevelById } from "@/lib/levels"
 
 type VoiceContext = "coach_panel" | "progressive_hint" | "general"
 
@@ -71,21 +72,55 @@ function parseJson(value: string | null): unknown {
 }
 
 function buildPrompt(context: VoiceContext, transcript: string, payload: unknown): string {
+  const payloadObj = typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : undefined
+  const levelIdRaw = payloadObj?.levelId
+  const levelId =
+    typeof levelIdRaw === "number"
+      ? levelIdRaw
+      : typeof levelIdRaw === "string"
+        ? Number(levelIdRaw)
+        : undefined
+  const level = Number.isFinite(levelId) ? getLevelById(Number(levelId)) : undefined
+
   const baseContext =
     context === "coach_panel"
       ? "You are helping a user inside the simulator understand their continuum robot configuration."
       : context === "progressive_hint"
-        ? "You are providing a concise, step-by-step hint for a specific learning level."
+        ? "You are providing a concise, step-by-step hint for a specific continuum robotics learning level."
         : "You are answering a question about continuum robot coaching."
 
+  const levelContextText =
+    context === "progressive_hint" && level
+      ? `Level context:
+- id: ${level.id}
+- title: ${level.title}
+- concept: ${level.concept}
+- goal: ${level.goal}
+- challenge: ${level.challenge}
+- rules: ${JSON.stringify(level.rules)}`
+      : ""
+
   const payloadText = payload ? `Context:\n${JSON.stringify(payload, null, 2)}` : ""
+
+  const contextPolicy =
+    context === "progressive_hint"
+      ? `Strict policy:
+- Your answer MUST be specific to this continuum robotics level.
+- Reference level terms directly (e.g., $\\kappa$, $\\phi$, $L$, target, obstacle, singularity) when relevant.
+- Do NOT give generic school-math pattern advice (e.g., "input/output pattern") unless the level explicitly asks for that.
+- If the user asks "how do I solve this level", answer with concrete parameter actions tied to this level's goal/challenge.`
+      : ""
 
   return `${baseContext}
 
 Transcribed user question:
 "${transcript}"
 
+${levelContextText}
+
 ${payloadText}
 
-Respond in under 140 words, using LaTeX for math symbols (e.g., $\\kappa_1$). Focus on actionable coaching.`
+${contextPolicy}
+
+Respond in under 160 words, using LaTeX for math symbols (e.g., $\\kappa_1$). Focus on actionable continuum-robot coaching.`
 }

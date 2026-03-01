@@ -34,7 +34,7 @@ export function Navbar() {
             <rect x="10" y="19" width="4" height="3" rx="0.5" />
           </svg>
           <span className="font-display text-base font-bold tracking-tight text-foreground">
-            continuum<span className="text-primary">coach</span>
+            Continu<span className="text-primary">Learn</span>
           </span>
         </Link>
 

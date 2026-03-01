@@ -21,7 +21,7 @@ export const UNITY_BUILD_CONFIG: UnityBuildConfig = {
   codeUrl: "/unity/Build/Unity.wasm.br",
   streamingAssetsUrl: "StreamingAssets",
   bridgeObjectNames: ["robot", "RobotController", "ContinuumSegmentController"],
-  companyName: "ContinuumCoach",
-  productName: "ContinuumRobotSimulator",
+  companyName: "ContinuLearn",
+  productName: "ContinuLearnSimulator",
   productVersion: "0.1.0",
 }

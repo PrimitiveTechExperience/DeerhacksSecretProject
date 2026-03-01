@@ -22,7 +22,7 @@ export function Footer() {
             <rect x="10" y="19" width="4" height="3" rx="0.5" />
           </svg>
           <span className="font-display text-sm font-bold text-foreground">
-            continuum<span className="text-primary">coach</span>
+            Continu<span className="text-primary">Learn</span>
           </span>
         </div>
 

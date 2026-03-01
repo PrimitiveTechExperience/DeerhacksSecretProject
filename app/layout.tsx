@@ -11,7 +11,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 const _spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Continuum Coach',
+  title: 'ContinuLearn',
   description: 'AI-powered voice tutor for continuum robots. Learn robot kinematics interactively with real-time simulation and intelligent coaching.',
   generator: 'v0.app',
   icons: {
