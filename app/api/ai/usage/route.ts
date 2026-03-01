@@ -13,7 +13,7 @@ import {
 import { generateGeminiContent, hasGeminiApiKey } from "@/lib/ai/gemini"
 
 const USAGE_SET = new Set<FrontendAiUsage>(FRONTEND_AI_USAGES)
-
+console.log("HI BACK");
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as FrontendAiUsageRequest
