@@ -45,7 +45,7 @@ const features = [
     ),
     title: "Real-Time Simulation",
     description:
-      "Manipulate a 2-segment continuum robot through 6 kinematic parameters. Watch curvature, bend direction, and length respond instantly in 3D space.",
+      "Manipulate upto an N-segment continuum robot through 3 kinematic parameters. Watch curvature, bend direction, and length respond instantly in 3D space.",
     tag: "SIM",
   },
   {
